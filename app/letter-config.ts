@@ -1,100 +1,148 @@
-export type InteractionKind = "star" | "brush" | "hold" | "bookmark" | "seal";
+export type BranchKey = "farewell" | "forward";
 
-export interface LetterSection {
+export interface LetterChapter {
   id: string;
-  label: string;
+  number: string;
+  eyebrow: string;
   title: string;
+  lead: string;
   paragraphs: string[];
-  interaction: InteractionKind;
-  interactionHint: string;
+  prompt: string;
+  media: {
+    src: string;
+    alt: string;
+    label: string;
+    caption: string;
+  }[];
 }
 
-export interface LetterConfig {
-  recipient: string;
-  sender: string;
-  date: string;
-  accessPhraseHash: string;
-  accessHint: string;
+export interface BranchOption {
+  key: BranchKey;
+  marker: string;
   title: string;
-  preface: string;
-  sections: LetterSection[];
+  description: string;
+  constellation: string;
 }
 
 /**
- * 所有需要个性化的文字都集中在这里。
- * 当前示例暗号是“星光为信”。修改暗号时，请同时更新 accessPhraseHash 与 accessHint。
+ * 网页中需要替换的文字和照片都集中在这个文件。
+ * 照片请先放入 public/memories/，再将 src 改为例如：/memories/chat-01.jpg。
+ * src 保持空字符串时，网页会显示设计好的星图占位卡，不影响预览。
  */
-export const letterConfig: LetterConfig = {
-  recipient: "[对方称呼]",
-  sender: "[你的署名]",
-  date: "写于一个安静的夜晚",
-  accessPhraseHash:
-    "e95ba36b063fa96191c02fa860fe4b85e3e6576a514531d49361513384ef17c7",
-  accessHint: "当前示例暗号：星光为信",
-  title: "有些话，想慢慢写给你",
-  preface: "这不是一封需要匆忙读完的信。慢一点，让每一句话都有落下来的地方。",
-  sections: [
+export const letterConfig = {
+  recipient: "[朋友的名字]",
+  sender: "[你的名字]",
+  date: "写于一个很安静的夜晚",
+  cover: {
+    overline: "A LETTER BENEATH THE STARS",
+    title: "一封信",
+    subtitle: "有些话适合留到夜深，再慢慢写给你。",
+    openLabel: "拆开这封信",
+  },
+  chapters: [
     {
-      id: "meeting",
-      label: "第一封笺",
-      title: "很庆幸，在人海里认识了你",
+      id: "apology",
+      number: "01",
+      eyebrow: "失礼 · THE ECHO OF MEMORY",
+      title: "回忆偶尔交错，才发现我们都走了很远",
+      lead: "请在这里写下你想从截图说起的那一句话。",
       paragraphs: [
-        "给 [对方称呼]：",
-        "我常常觉得，人与人的相遇带着一点偶然。世界这么大，每个人都有自己的方向，可我们偏偏在某一段路上碰见了，并且没有只做匆匆经过的路人。",
-        "第一次真正记住你，是在 [第一次留下印象的时刻]。当时也许没有什么隆重的情节，但后来回想起来，那像是一颗很小的星星，在寻常的一天里安静地亮了一下。",
-        "谢谢你愿意停下来，也谢谢那时的我们，刚好都没有错过。",
+        "[正文占位] 可以从某次聊天、一次没有及时回应，或一段后来才读懂的对话写起。无需把歉意写得沉重，坦诚就已经足够。",
+        "[正文占位] 讲讲你从这些交错的回忆里，看见了怎样的成长，又对彼时的自己和朋友有了怎样的新理解。",
+        "[正文占位] 最后落到一声温柔的感慨：时间改变了许多，但那些认真相处过的痕迹仍然值得珍惜。",
       ],
-      interaction: "star",
-      interactionHint: "把那颗小星星，送回它的位置",
+      prompt: "轻触散落的星片，把这一页回忆收好",
+      media: [
+        { src: "", alt: "聊天截图一", label: "SCREENSHOT · 01", caption: "[截图说明或日期]" },
+        { src: "", alt: "聊天截图二", label: "SCREENSHOT · 02", caption: "[截图说明或一句摘录]" },
+        { src: "", alt: "聊天截图三", label: "SCREENSHOT · 03", caption: "[可选截图，没有也可保留为空]" },
+      ],
     },
     {
-      id: "memory",
-      label: "第二封笺",
-      title: "那些小事，我其实都记得",
+      id: "stillness",
+      number: "02",
+      eyebrow: "静心 · A JOYFUL INTERLUDE",
+      title: "那一天的灯火，至今仍让人觉得欢喜",
+      lead: "请在这里写下世界之窗之行最先浮现的画面。",
       paragraphs: [
-        "我记得 [一段共同经历]。记得当时的天气、说过的几句话，也记得后来我们提起它时，不约而同笑起来的样子。",
-        "真正让一段友情变得珍贵的，好像从来不是多么惊天动地的瞬间，而是许多不起眼的小事：一条及时的消息，一次耐心的倾听，一句只有彼此才明白的玩笑。",
-        "有些细节时间久了会模糊，可它们留下的感觉不会。我知道，在我的一部分记忆里，永远会有一小块地方，保留着我们一起走过的光线。",
+        "[正文占位] 可以写那天见到的景色、一起走过的路线，或一个现在想起仍然会笑的小片段。",
+        "[正文占位] 比起盛大的风景，真正被记住的也许是身边的人，以及那份难得轻松、无需解释的快乐。",
+        "[正文占位] 把欣喜延伸到未来：希望彼此保留好奇，认真生活，也在各自的方向上继续进步。",
       ],
-      interaction: "brush",
-      interactionHint: "轻轻拂过纸面，让记忆显出来",
+      prompt: "沿着星光游览线，走向下一封笺",
+      media: [
+        { src: "", alt: "世界之窗合影或风景照", label: "WINDOW OF THE WORLD", caption: "[在这里写日期、地点或照片旁白]" },
+      ],
     },
     {
-      id: "gratitude",
-      label: "第三封笺",
-      title: "想认真地向你说一声谢谢",
+      id: "wishes",
+      number: "03",
+      eyebrow: "祝愿 · WHAT THE JOURNEY LEFT US",
+      title: "我们从这段时光里，各自带走了一些光",
+      lead: "请在这里写下这段时间带给你的收获。",
       paragraphs: [
-        "谢谢你在 [某个需要陪伴的时刻] 没有急着给出答案，而是先听我把话说完。那份不催促、不评判的耐心，对我来说比很多漂亮的话都更有力量。",
-        "我也很欣赏你身上的 [对方的一项品质]。它也许不是你最常提起的部分，却在许多时候照顾到了身边的人，也悄悄影响了我。",
-        "朋友之间似乎很少郑重道谢，总觉得来日方长、彼此都懂。但我还是想把这句话写下来：认识你以后，我的世界确实多了一些可靠、坦然和明亮。谢谢你。",
+        "[正文占位] 写下你获得的理解、勇气或改变，也可以写朋友曾在不经意间给你的启发。",
+        "[正文占位] 珍重不一定意味着挽留。它也可以是尊重彼此的选择，同时真心希望对方拥有更辽阔的生活。",
+        "[正文占位] 在进入最后一页前，留下一句最想送给朋友的祝愿。",
       ],
-      interaction: "hold",
-      interactionHint: "按住这束微光，直到它亮起来",
+      prompt: "点亮最后一颗星，回答一个问题",
+      media: [],
     },
-    {
-      id: "companionship",
-      label: "第四封笺",
-      title: "平常的陪伴，也有很重的分量",
+  ] satisfies LetterChapter[],
+  question: {
+    overline: "THE FORK IN THE STARS",
+    title: "你希望再次相逢吗？",
+    note: "没有标准答案。请选择此刻最接近内心的那一条星轨。",
+    options: [
+      {
+        key: "farewell",
+        marker: "A",
+        title: "最初的样子就好",
+        description: "我们都有各自的世界",
+        constellation: "向不同远方延伸的两颗星",
+      },
+      {
+        key: "forward",
+        marker: "B",
+        title: "成为遥远又陌生，\n但是很特别的现实朋友",
+        description: "愿未来还能一起向前",
+        constellation: "在远方重新相连的两颗星",
+      },
+    ] satisfies BranchOption[],
+  },
+  endings: {
+    farewell: {
+      id: "farewell",
+      number: "04",
+      eyebrow: "A LINE · 告别篇",
+      title: "愿我们奔向各自的世界，也都一路顺利",
+      lead: "谢谢你选择让这段相遇停在最初、也最温柔的样子。",
       paragraphs: [
-        "我们不必时时刻刻保持联系，也不需要用热闹来证明什么。各自忙碌的时候，就认真生活；偶尔再见面，仍然能从上一次的话题继续说起。这样的默契，我很珍惜。",
-        "愿我们以后还会分享许多普通日子：新发现的一首歌、路边奇怪的云、突然想通的一件事，还有那些只有在熟悉的人面前才愿意讲的碎碎念。",
-        "如果有一天你走进一段很难的路，希望你记得，不需要把一切都整理好才来找我。你可以只是来坐一会儿，剩下的话，慢慢再说。",
+        "[正文占位] 写下你对这段同行的感谢。无需否定曾经的靠近，也无需为渐远寻找一个过分明确的理由。",
+        "[正文占位] 我们会走进各自的生活，认识不同的人，看见不同的风景。愿这次告别不是遗憾，而是对彼此选择的尊重。",
+        "[正文占位] 愿你未来万事顺意。若某天偶然想起，就记得我们曾在同一片夜空下，真诚地陪伴过一程。",
       ],
-      interaction: "bookmark",
-      interactionHint: "拉动书签，翻到最后一页",
+      prompt: "让星轨缓缓驶向远方",
+      media: [],
     },
-    {
-      id: "future",
-      label: "第五封笺",
-      title: "愿我们都走向更辽阔的地方",
+    forward: {
+      id: "forward",
+      number: "05",
+      eyebrow: "B LINE · 展望篇",
+      title: "愿未来的路很长，而我们仍能一起向前",
+      lead: "谢谢你选择让这份特别，在现实里继续生长。",
       paragraphs: [
-        "最后，想把祝福写得简单一些。愿你仍然保有好奇，仍然相信自己的感受；愿你做出的选择，不是为了成为别人期待的样子，而是越来越接近真正自在的自己。",
-        "愿今后的路上，有值得奔赴的事，也有随时可以歇脚的地方。我们会遇见新的风景，也会各自长成新的模样，但这并不妨碍一段真诚的友情在时间里继续生长。",
-        "很高兴认识你，也很高兴直到今天，我们仍然是可以互相写信的人。",
-        "照顾好自己。等下次见面，再把没说完的故事慢慢补上。",
+        "[正文占位] 我们也许仍然遥远，仍有尚未真正熟悉的部分，但正因如此，未来才还有许多值得慢慢认识的可能。",
+        "[正文占位] 不必时时联系，也不必许下沉重的承诺。只希望分享快乐时会想到彼此，面对难处时也知道这里有一个愿意倾听的人。",
+        "[正文占位] 愿我们在各自成长的同时，也能偶尔并肩。下一次相逢时，再把这封信以后发生的故事慢慢讲完。",
       ],
-      interaction: "seal",
-      interactionHint: "轻点封印，替这封信好好收尾",
+      prompt: "让两颗星在未来重新相连",
+      media: [],
     },
-  ],
+  } satisfies Record<BranchKey, LetterChapter>,
+  finish: {
+    overline: "THE LETTER RESTS HERE",
+    title: "信写到这里，星光仍会继续",
+    note: "愿你抬头有星，低头有路；愿那些真诚相待的日子，都有温柔的回声。",
+  },
 };

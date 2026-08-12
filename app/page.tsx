@@ -1,591 +1,433 @@
 "use client";
 
 import {
-  type KeyboardEvent as ReactKeyboardEvent,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
-import { letterConfig, type InteractionKind } from "./letter-config";
+import {
+  letterConfig,
+  type BranchKey,
+  type LetterChapter,
+} from "./letter-config";
 
-const STORAGE_KEY = "friend-letter-progress-v1";
+const STORAGE_KEY = "starlit-letter-route-v2";
 
-interface SavedProgress {
-  unlocked: boolean;
-  visibleSections: number;
-  sealed: boolean;
-}
-
-const initialProgress: SavedProgress = {
-  unlocked: false,
-  visibleSections: 1,
-  sealed: false,
+type SavedState = {
+  opened: boolean;
+  stage: number;
+  branch: BranchKey | null;
 };
 
-function saveProgress(progress: SavedProgress) {
+const initialState: SavedState = { opened: false, stage: 0, branch: null };
+
+function saveState(value: SavedState) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
   } catch {
-    // The experience still works when storage is unavailable.
+    // The letter remains fully usable when storage is unavailable.
   }
 }
 
-async function hashPhrase(value: string) {
-  const bytes = new TextEncoder().encode(value.trim());
-  const digest = await window.crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+function Starfield() {
+  const stars = Array.from({ length: 34 }, (_, index) => ({
+    left: `${(index * 37 + 11) % 100}%`,
+    top: `${(index * 61 + 7) % 96}%`,
+    delay: `${(index % 9) * -0.53}s`,
+    size: index % 7 === 0 ? 3 : index % 3 === 0 ? 2 : 1,
+  }));
+
+  return (
+    <div className="sky" aria-hidden="true">
+      <div className="sky-nebula" />
+      <div className="moon-haze" />
+      {stars.map((star, index) => (
+        <i
+          key={index}
+          className="sky-star"
+          style={
+            {
+              left: star.left,
+              top: star.top,
+              width: star.size,
+              height: star.size,
+              animationDelay: star.delay,
+            } as CSSProperties
+          }
+        />
+      ))}
+      <span className="shooting-star shooting-star-one" />
+      <span className="shooting-star shooting-star-two" />
+    </div>
+  );
 }
 
-function QuietNext({ onClick }: { onClick: () => void }) {
+function ImageCard({
+  item,
+  index,
+}: {
+  item: LetterChapter["media"][number];
+  index: number;
+}) {
+  const [turned, setTurned] = useState(false);
+
   return (
-    <button className="quiet-next" type="button" onClick={onClick}>
-      也可以轻点这里继续
-      <span aria-hidden="true">→</span>
+    <button
+      className={`memory-card memory-card-${index + 1} ${turned ? "is-turned" : ""}`}
+      type="button"
+      onClick={() => setTurned((current) => !current)}
+      aria-label={`${item.alt}，点击${turned ? "收起" : "查看"}`}
+    >
+      <span className="memory-card-inner">
+        <span className="memory-face memory-front">
+          {item.src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.src} alt={item.alt} />
+          ) : (
+            <span className="media-placeholder" aria-hidden="true">
+              <i />
+              <b>✦</b>
+              <small>在此放入照片</small>
+            </span>
+          )}
+          <span className="media-label">{item.label}</span>
+        </span>
+        <span className="memory-face memory-back">
+          <span className="memory-star">✦</span>
+          <span>{item.caption}</span>
+          <small>再次轻触，回到照片</small>
+        </span>
+      </span>
     </button>
   );
 }
 
-function StarInteraction({ onComplete }: { onComplete: () => void }) {
-  const [dragging, setDragging] = useState(false);
-  const [distance, setDistance] = useState(0);
-  const startX = useRef(0);
-
-  const begin = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    startX.current = event.clientX;
-    setDragging(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const move = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (!dragging) return;
-    const next = Math.max(0, Math.min(150, event.clientX - startX.current));
-    setDistance(next);
-    if (next >= 116) {
-      setDragging(false);
-      onComplete();
-    }
-  };
-
-  const stop = () => {
-    setDragging(false);
-    if (distance < 116) setDistance(0);
-  };
+function Progress({ stage, branch }: { stage: number; branch: BranchKey | null }) {
+  const steps = ["失礼", "静心", "祝愿", branch === "farewell" ? "告别" : branch === "forward" ? "展望" : "未定"];
+  const active = Math.min(stage, 3);
 
   return (
-    <div className="interaction star-interaction">
-      <p className="interaction-kicker">一个小小的动作</p>
-      <p className="interaction-title">{letterConfig.sections[0].interactionHint}</p>
-      <div className="star-track" aria-hidden="true">
-        <span className="star-path" />
-        <span className="star-home">✦</span>
+    <nav className="chapter-progress" aria-label="信件章节">
+      <span className="progress-wordmark">STELLAR LETTER</span>
+      <ol>
+        {steps.map((step, index) => (
+          <li className={index <= active ? "is-reached" : ""} key={step}>
+            <i aria-hidden="true" />
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+      <span className="progress-count">{String(active + 1).padStart(2, "0")} / 04</span>
+    </nav>
+  );
+}
+
+function ChapterVisual({ chapter }: { chapter: LetterChapter }) {
+  if (chapter.id === "apology") {
+    return (
+      <div className="chapter-visual memory-visual" aria-label="可替换的截图区域">
+        {chapter.media.map((item, index) => (
+          <ImageCard item={item} index={index} key={item.label} />
+        ))}
+        <span className="memory-thread memory-thread-one" aria-hidden="true" />
+        <span className="memory-thread memory-thread-two" aria-hidden="true" />
       </div>
-      <button
-        className="draggable-star"
-        type="button"
-        aria-label="向右拖动星星，开启下一段；也可以按回车直接继续"
-        style={{ transform: `translateX(${distance}px)` }}
-        onPointerDown={begin}
-        onPointerMove={move}
-        onPointerUp={stop}
-        onPointerCancel={stop}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onComplete();
-          }
-        }}
-      >
-        ✦
-      </button>
-      <QuietNext onClick={onComplete} />
-    </div>
-  );
-}
+    );
+  }
 
-function BrushInteraction({ onComplete }: { onComplete: () => void }) {
-  const [brushing, setBrushing] = useState(false);
-  const [progress, setProgress] = useState(8);
-  const lastPoint = useRef({ x: 0, y: 0 });
-
-  const begin = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    setBrushing(true);
-    lastPoint.current = { x: event.clientX, y: event.clientY };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const move = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (!brushing) return;
-    const delta =
-      Math.abs(event.clientX - lastPoint.current.x) +
-      Math.abs(event.clientY - lastPoint.current.y);
-    lastPoint.current = { x: event.clientX, y: event.clientY };
-    if (delta < 3) return;
-    setProgress((current) => {
-      const next = Math.min(100, current + Math.min(18, delta / 2));
-      if (next >= 92) window.setTimeout(onComplete, 120);
-      return next;
-    });
-  };
-
-  return (
-    <div className="interaction brush-interaction">
-      <p className="interaction-kicker">藏在纸纹里的记忆</p>
-      <p className="interaction-title">{letterConfig.sections[1].interactionHint}</p>
-      <button
-        className="brush-surface"
-        type="button"
-        aria-label="在纸面上来回轻拂，开启下一段；也可以按回车直接继续"
-        style={{ "--reveal": `${progress}%` } as React.CSSProperties}
-        onPointerDown={begin}
-        onPointerMove={move}
-        onPointerUp={() => setBrushing(false)}
-        onPointerCancel={() => setBrushing(false)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onComplete();
-          }
-        }}
-      >
-        <span className="hidden-line">有些记忆，不会被时间带走</span>
-        <span className="paper-dust" aria-hidden="true" />
-      </button>
-      <QuietNext onClick={onComplete} />
-    </div>
-  );
-}
-
-function HoldInteraction({ onComplete }: { onComplete: () => void }) {
-  const [holding, setHolding] = useState(false);
-  const timer = useRef<number | null>(null);
-
-  const start = () => {
-    if (holding) return;
-    setHolding(true);
-    timer.current = window.setTimeout(() => {
-      setHolding(false);
-      onComplete();
-    }, 1100);
-  };
-
-  const cancel = () => {
-    if (timer.current) window.clearTimeout(timer.current);
-    timer.current = null;
-    setHolding(false);
-  };
-
-  const handleKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
-    if ((event.key === "Enter" || event.key === " ") && !event.repeat) {
-      event.preventDefault();
-      start();
-    }
-  };
-
-  return (
-    <div className="interaction hold-interaction">
-      <p className="interaction-kicker">留一点时间给这句话</p>
-      <p className="interaction-title">{letterConfig.sections[2].interactionHint}</p>
-      <button
-        className={`light-orb ${holding ? "is-holding" : ""}`}
-        type="button"
-        aria-label="按住微光一秒钟，开启下一段"
-        onPointerDown={start}
-        onPointerUp={cancel}
-        onPointerLeave={cancel}
-        onPointerCancel={cancel}
-        onKeyDown={handleKeyDown}
-        onKeyUp={(event) => {
-          if (event.key === "Enter" || event.key === " ") cancel();
-        }}
-      >
-        <span aria-hidden="true" />
-      </button>
-      <QuietNext onClick={onComplete} />
-    </div>
-  );
-}
-
-function BookmarkInteraction({ onComplete }: { onComplete: () => void }) {
-  const [pulling, setPulling] = useState(false);
-  const [distance, setDistance] = useState(0);
-  const startY = useRef(0);
-
-  const begin = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    startY.current = event.clientY;
-    setPulling(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const move = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (!pulling) return;
-    const next = Math.max(0, Math.min(96, event.clientY - startY.current));
-    setDistance(next);
-    if (next >= 72) {
-      setPulling(false);
-      onComplete();
-    }
-  };
-
-  const stop = () => {
-    setPulling(false);
-    if (distance < 72) setDistance(0);
-  };
-
-  return (
-    <div className="interaction bookmark-interaction">
-      <p className="interaction-kicker">故事还剩一页</p>
-      <p className="interaction-title">{letterConfig.sections[3].interactionHint}</p>
-      <div className="bookmark-stage">
-        <div className="page-edge" aria-hidden="true" />
-        <button
-          className="bookmark"
-          type="button"
-          aria-label="向下拉动书签，开启最后一段；也可以按回车直接继续"
-          style={{ transform: `translateY(${distance}px)` }}
-          onPointerDown={begin}
-          onPointerMove={move}
-          onPointerUp={stop}
-          onPointerCancel={stop}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              onComplete();
-            }
-          }}
-        >
-          <span>最后一页</span>
-        </button>
+  if (chapter.id === "stillness") {
+    const item = chapter.media[0];
+    return (
+      <div className="chapter-visual travel-visual">
+        <div className="travel-ticket">
+          <span className="ticket-route" aria-hidden="true">
+            <i>✦</i><b /><i>✦</i><b /><i>✦</i>
+          </span>
+          <p>MEMORY ADMIT ONE</p>
+          <strong>世界之窗</strong>
+          <small>[在这里补充旅行日期]</small>
+        </div>
+        <div className="travel-photo">
+          {item.src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.src} alt={item.alt} />
+          ) : (
+            <span className="media-placeholder travel-placeholder" aria-hidden="true">
+              <i />
+              <b>✧</b>
+              <small>在此放入世界之窗照片</small>
+            </span>
+          )}
+          <p>{item.caption}</p>
+        </div>
       </div>
-      <QuietNext onClick={onComplete} />
-    </div>
-  );
-}
+    );
+  }
 
-function SealInteraction({ onComplete }: { onComplete: () => void }) {
-  const [pressed, setPressed] = useState(false);
-  return (
-    <div className="interaction seal-interaction">
-      <p className="interaction-kicker">写到这里，刚刚好</p>
-      <p className="interaction-title">{letterConfig.sections[4].interactionHint}</p>
-      <button
-        className={`wax-seal ${pressed ? "is-pressed" : ""}`}
-        type="button"
-        aria-label="轻点封印，读完这封信"
-        onClick={() => {
-          setPressed(true);
-          window.setTimeout(onComplete, 520);
-        }}
-      >
-        <span aria-hidden="true">友</span>
-      </button>
-    </div>
-  );
-}
-
-function SectionInteraction({
-  kind,
-  onComplete,
-}: {
-  kind: InteractionKind;
-  onComplete: () => void;
-}) {
-  if (kind === "star") return <StarInteraction onComplete={onComplete} />;
-  if (kind === "brush") return <BrushInteraction onComplete={onComplete} />;
-  if (kind === "hold") return <HoldInteraction onComplete={onComplete} />;
-  if (kind === "bookmark") return <BookmarkInteraction onComplete={onComplete} />;
-  return <SealInteraction onComplete={onComplete} />;
-}
-
-export default function Home() {
-  const [phrase, setPhrase] = useState("");
-  const [error, setError] = useState("");
-  const [checking, setChecking] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
-  const [progress, setProgress] = useState<SavedProgress>(initialProgress);
-  const [announcement, setAnnouncement] = useState("");
-
-  useEffect(() => {
-    const restoreTimer = window.setTimeout(() => {
-      try {
-        const saved = window.localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved) as Partial<SavedProgress>;
-          setProgress({
-            unlocked: Boolean(parsed.unlocked),
-            visibleSections: Math.max(
-              1,
-              Math.min(letterConfig.sections.length, parsed.visibleSections ?? 1),
-            ),
-            sealed: Boolean(parsed.sealed),
-          });
-        }
-      } catch {
-        // Ignore invalid or unavailable local progress.
-      } finally {
-        setHydrated(true);
-      }
-    }, 0);
-
-    return () => window.clearTimeout(restoreTimer);
-  }, []);
-
-  const updateProgress = useCallback((next: SavedProgress) => {
-    setProgress(next);
-    saveProgress(next);
-  }, []);
-
-  const unlock = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!phrase.trim()) {
-      setError("先写下暗号，再轻轻拆开这封信。");
-      return;
-    }
-
-    setChecking(true);
-    setError("");
-    try {
-      const digest = await hashPhrase(phrase);
-      if (digest !== letterConfig.accessPhraseHash) {
-        setError("暗号好像差了一点。再想想那句只有你们知道的话。");
-        return;
-      }
-      updateProgress({ unlocked: true, visibleSections: 1, sealed: false });
-      setAnnouncement("暗号正确，信封已经打开。第一段信出现在眼前。");
-    } catch {
-      setError("浏览器暂时无法验证暗号，请换一个现代浏览器再试。");
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  const advance = useCallback(
-    (sectionIndex: number) => {
-      if (sectionIndex < letterConfig.sections.length - 1) {
-        const visibleSections = Math.max(progress.visibleSections, sectionIndex + 2);
-        updateProgress({ ...progress, visibleSections });
-        setAnnouncement(`第 ${sectionIndex + 2} 段信已经打开。`);
-        window.setTimeout(() => {
-          document
-            .querySelector(`[data-letter-section="${sectionIndex + 1}"]`)
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 180);
-      } else {
-        updateProgress({ ...progress, sealed: true });
-        setAnnouncement("这封信已经读完，并被好好收起。");
-        window.setTimeout(() => {
-          document.getElementById("letter-finish")?.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
-        }, 180);
-      }
-    },
-    [progress, updateProgress],
-  );
-
-  const restart = () => {
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // Nothing else is needed when storage is unavailable.
-    }
-    setPhrase("");
-    setError("");
-    setProgress(initialProgress);
-    setAnnouncement("阅读进度已经清除，回到信封前。想再读一次时，请重新输入暗号。");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  if (!hydrated) {
-    return <main className="loading-view" aria-label="正在取出信件" />;
+  if (chapter.id === "wishes") {
+    return (
+      <div className="chapter-visual wish-visual" aria-hidden="true">
+        <span className="wish-orbit orbit-one" />
+        <span className="wish-orbit orbit-two" />
+        <div className="wish-word wish-word-one"><i>01</i><strong>感谢</strong><small>GRATITUDE</small></div>
+        <div className="wish-word wish-word-two"><i>02</i><strong>收获</strong><small>GROWTH</small></div>
+        <div className="wish-word wish-word-three"><i>03</i><strong>祝愿</strong><small>WISHES</small></div>
+      </div>
+    );
   }
 
   return (
-    <main className={progress.unlocked ? "night night-reading" : "night"}>
-      <div className="stars stars-one" aria-hidden="true" />
-      <div className="stars stars-two" aria-hidden="true" />
-      <p className="sr-only" aria-live="polite">
-        {announcement}
-      </p>
+    <div className={`chapter-visual ending-visual ${chapter.id}`} aria-hidden="true">
+      <div className="ending-orbit">
+        <i className="ending-star ending-star-left">✦</i>
+        <i className="ending-star ending-star-right">✦</i>
+        <span />
+      </div>
+      <p>{chapter.id === "farewell" ? "向各自的远方，平安顺遂" : "在遥远的现实里，仍旧彼此照亮"}</p>
+    </div>
+  );
+}
 
-      {!progress.unlocked ? (
-        <section className="cover" aria-labelledby="cover-title">
-          <p className="cover-overline">A LETTER FOR A DEAR FRIEND</p>
-          <div className="envelope-scene" aria-hidden="true">
-            <div className="envelope-shadow" />
-            <div className="envelope">
-              <div className="envelope-back" />
-              <div className="envelope-letter">
-                <span>给 {letterConfig.recipient}</span>
-              </div>
-              <div className="envelope-left" />
-              <div className="envelope-right" />
-              <div className="envelope-front" />
-              <div className="envelope-flap" />
-              <div className="cover-seal">友</div>
-            </div>
+function ChapterPage({
+  chapter,
+  onNext,
+  onBack,
+  last,
+}: {
+  chapter: LetterChapter;
+  onNext: () => void;
+  onBack: () => void;
+  last?: boolean;
+}) {
+  return (
+    <section className={`scene chapter-scene chapter-${chapter.id}`} aria-labelledby={`${chapter.id}-title`}>
+      <div className="scene-grid">
+        <div className="chapter-copy">
+          <p className="chapter-eyebrow">{chapter.eyebrow}</p>
+          <span className="chapter-number" aria-hidden="true">{chapter.number}</span>
+          <h1 id={`${chapter.id}-title`}>{chapter.title}</h1>
+          <p className="chapter-lead">{chapter.lead}</p>
+          <div className="chapter-body">
+            {chapter.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
           </div>
-
-          <div className="cover-copy">
-            <p className="cover-note">有一封信，在这里等你</p>
-            <h1 id="cover-title">写下暗号，再慢慢拆开</h1>
-            <p className="cover-intro">
-              不必着急。等周围安静一点，再让这些话一页一页出现。
-            </p>
-          </div>
-
-          <form className="phrase-form" onSubmit={unlock} noValidate>
-            <label htmlFor="phrase">我们之间的暗号</label>
-            <div className="phrase-row">
-              <input
-                id="phrase"
-                type="password"
-                value={phrase}
-                onChange={(event) => {
-                  setPhrase(event.target.value);
-                  if (error) setError("");
-                }}
-                placeholder="写在这里"
-                autoComplete="off"
-                aria-describedby="phrase-hint phrase-error"
-                aria-invalid={Boolean(error)}
-              />
-              <button type="submit" disabled={checking}>
-                {checking ? "正在确认" : "拆开信封"}
-                <span aria-hidden="true">↗</span>
-              </button>
-            </div>
-            <p id="phrase-hint" className="phrase-hint">
-              {letterConfig.accessHint} · 分享前请替换
-            </p>
-            <p id="phrase-error" className="phrase-error" role="alert">
-              {error}
-            </p>
-          </form>
-          <p className="privacy-note">暗号只在这台设备上验证 · 不记录任何访问数据</p>
-        </section>
-      ) : (
-        <div className="reading-layout">
-          <aside className="reading-progress" aria-label="阅读进度">
-            <span className="progress-label">LETTER</span>
-            <div className="progress-line" aria-hidden="true">
-              <span
-                style={{
-                  height: `${((progress.visibleSections - 1) / 4) * 100}%`,
-                }}
-              />
-            </div>
-            <ol>
-              {letterConfig.sections.map((section, index) => (
-                <li key={section.id}>
-                  <button
-                    type="button"
-                    disabled={index >= progress.visibleSections}
-                    className={index < progress.visibleSections ? "is-visible" : ""}
-                    aria-label={`前往第 ${index + 1} 段：${section.title}`}
-                    onClick={() =>
-                      document
-                        .querySelector(`[data-letter-section="${index}"]`)
-                        ?.scrollIntoView({ behavior: "smooth" })
-                    }
-                  >
-                    {String(index + 1).padStart(2, "0")}
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </aside>
-
-          <article className="letter-paper">
-            <header className="letter-header">
-              <div className="letter-address">
-                <span>TO</span>
-                <strong>{letterConfig.recipient}</strong>
-              </div>
-              <div className="letter-mark" aria-hidden="true">
-                <span>✦</span>
-                <small>PRIVATE NOTE</small>
-              </div>
-              <p className="letter-date">{letterConfig.date}</p>
-              <h1>{letterConfig.title}</h1>
-              <p className="letter-preface">{letterConfig.preface}</p>
-              <div className="opening-constellation" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-                <i />
-                <span />
-              </div>
-            </header>
-
-            {letterConfig.sections.map((section, index) => {
-              if (index >= progress.visibleSections) return null;
-              const interactionComplete =
-                index < progress.visibleSections - 1 ||
-                (index === letterConfig.sections.length - 1 && progress.sealed);
-
-              return (
-                <section
-                  className="letter-section"
-                  key={section.id}
-                  data-letter-section={index}
-                  aria-labelledby={`${section.id}-title`}
-                >
-                  <div className="section-number" aria-hidden="true">
-                    {String(index + 1).padStart(2, "0")}
-                  </div>
-                  <p className="section-label">{section.label}</p>
-                  <h2 id={`${section.id}-title`}>{section.title}</h2>
-                  <div className="section-copy">
-                    {section.paragraphs.map((paragraph) => (
-                      <p key={paragraph}>{paragraph}</p>
-                    ))}
-                  </div>
-
-                  {!interactionComplete && (
-                    <SectionInteraction
-                      kind={section.interaction}
-                      onComplete={() => advance(index)}
-                    />
-                  )}
-
-                  {interactionComplete && index < letterConfig.sections.length - 1 && (
-                    <div className="opened-marker" aria-label="这一页已经打开">
-                      <span aria-hidden="true">✦</span>
-                      <span>这一页，已经好好读过</span>
-                    </div>
-                  )}
-                </section>
-              );
-            })}
-
-            {progress.sealed && (
-              <footer className="letter-finish" id="letter-finish">
-                <div className="finished-seal" aria-hidden="true">
-                  友
-                </div>
-                <p className="finish-overline">UNTIL WE MEET AGAIN</p>
-                <h2>信读完了，故事还会继续</h2>
-                <p>
-                  愿你抬头时有星光，低头时有路，也一直有可以放心说话的朋友。
-                </p>
-                <p className="signature">
-                  <span>你的朋友</span>
-                  <strong>{letterConfig.sender}</strong>
-                </p>
-                <button className="restart-button" type="button" onClick={restart}>
-                  从头再读
-                  <span aria-hidden="true">↺</span>
-                </button>
-              </footer>
-            )}
-          </article>
         </div>
-      )}
+        <ChapterVisual chapter={chapter} />
+      </div>
+      <div className="scene-actions">
+        <button className="text-button" type="button" onClick={onBack}>
+          <span aria-hidden="true">←</span> 上一页
+        </button>
+        <button className="star-button" type="button" onClick={onNext}>
+          <span>{last ? "读到信的末尾" : chapter.prompt}</span>
+          <i aria-hidden="true">✦</i>
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function BranchQuestion({
+  onChoose,
+  onBack,
+}: {
+  onChoose: (branch: BranchKey) => void;
+  onBack: () => void;
+}) {
+  return (
+    <section className="scene branch-scene" aria-labelledby="branch-question">
+      <header className="branch-heading">
+        <p>{letterConfig.question.overline}</p>
+        <h1 id="branch-question">{letterConfig.question.title}</h1>
+        <span>{letterConfig.question.note}</span>
+      </header>
+      <div className="branch-lines" aria-hidden="true"><i /><b /><span /></div>
+      <div className="branch-options">
+        {letterConfig.question.options.map((option) => (
+          <button
+            className={`branch-card branch-${option.key}`}
+            type="button"
+            key={option.key}
+            onClick={() => onChoose(option.key)}
+          >
+            <span className="branch-marker">{option.marker}</span>
+            <span className="branch-constellation" aria-hidden="true">
+              <i /><i /><i /><b />
+            </span>
+            <span className="branch-card-copy">
+              <small>{option.key === "farewell" ? "FAREWELL" : "TOGETHER, FORWARD"}</small>
+              <strong>{option.title}</strong>
+              <em>{option.description}</em>
+            </span>
+            <span className="branch-enter">选择这条星轨 <i>↗</i></span>
+          </button>
+        ))}
+      </div>
+      <button className="branch-back text-button" type="button" onClick={onBack}>← 回到上一页</button>
+    </section>
+  );
+}
+
+function Finish({ branch, onRestart }: { branch: BranchKey; onRestart: () => void }) {
+  return (
+    <section className={`scene finish-scene finish-${branch}`} aria-labelledby="finish-title">
+      <div className="finish-constellation" aria-hidden="true">
+        <i /><i /><i /><i /><i /><span /><b />
+      </div>
+      <p className="finish-overline">{letterConfig.finish.overline}</p>
+      <h1 id="finish-title">{letterConfig.finish.title}</h1>
+      <p className="finish-note">{letterConfig.finish.note}</p>
+      <div className="signature">
+        <span>你的朋友</span>
+        <strong>{letterConfig.sender}</strong>
+      </div>
+      <p className="chosen-route">本次抵达：{branch === "farewell" ? "A 线 · 告别篇" : "B 线 · 展望篇"}</p>
+      <button className="restart-button" type="button" onClick={onRestart}>
+        <span>重新拆开这封信</span><i aria-hidden="true">↺</i>
+      </button>
+    </section>
+  );
+}
+
+export default function Home() {
+  const [hydrated, setHydrated] = useState(false);
+  const [reading, setReading] = useState<SavedState>(initialState);
+  const [transitioning, setTransitioning] = useState(false);
+  const touchStart = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as Partial<SavedState>;
+        setReading({
+          opened: Boolean(saved.opened),
+          stage: Math.max(0, Math.min(5, Number(saved.stage) || 0)),
+          branch: saved.branch === "farewell" || saved.branch === "forward" ? saved.branch : null,
+        });
+      }
+    } catch {
+      // Start from the sealed envelope when saved progress is invalid.
+    } finally {
+      setHydrated(true);
+    }
+  }, []);
+
+  const changeReading = useCallback((next: SavedState) => {
+    setTransitioning(true);
+    window.setTimeout(() => {
+      setReading(next);
+      saveState(next);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      window.setTimeout(() => setTransitioning(false), 60);
+    }, 300);
+  }, []);
+
+  const goBack = useCallback(() => {
+    if (!reading.opened) return;
+    if (reading.stage === 0) {
+      changeReading(initialState);
+    } else if (reading.stage === 4) {
+      changeReading({ ...reading, stage: 3, branch: null });
+    } else if (reading.stage < 5) {
+      changeReading({ ...reading, stage: reading.stage - 1 });
+    }
+  }, [changeReading, reading]);
+
+  const goNext = useCallback(() => {
+    if (!reading.opened || reading.stage === 3 || reading.stage >= 5) return;
+    changeReading({ ...reading, stage: reading.stage + 1 });
+  }, [changeReading, reading]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") goBack();
+      if (event.key === "ArrowRight") goNext();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [goBack, goNext]);
+
+  const beginTouch = (event: ReactPointerEvent<HTMLElement>) => {
+    touchStart.current = { x: event.clientX, y: event.clientY };
+  };
+
+  const endTouch = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType !== "touch" || (event.target as HTMLElement).closest("button")) return;
+    const x = event.clientX - touchStart.current.x;
+    const y = event.clientY - touchStart.current.y;
+    if (Math.abs(x) < 70 || Math.abs(x) < Math.abs(y)) return;
+    if (x < 0) goNext();
+    else goBack();
+  };
+
+  if (!hydrated) {
+    return <main className="letter-app loading" aria-label="正在取出信件"><Starfield /></main>;
+  }
+
+  let content;
+  if (!reading.opened) {
+    content = (
+      <section className="scene cover-scene" aria-labelledby="cover-title">
+        <p className="cover-overline">{letterConfig.cover.overline}</p>
+        <div className="cover-orbit" aria-hidden="true"><i /><i /><span /></div>
+        <button
+          className="envelope"
+          type="button"
+          aria-label="拆开这封信"
+          onClick={() => changeReading({ opened: true, stage: 0, branch: null })}
+        >
+          <span className="envelope-shadow" />
+          <span className="envelope-back" />
+          <span className="envelope-paper"><small>TO</small><strong>{letterConfig.recipient}</strong></span>
+          <span className="envelope-left" />
+          <span className="envelope-right" />
+          <span className="envelope-front" />
+          <span className="envelope-flap" />
+          <span className="wax-seal">信</span>
+        </button>
+        <div className="cover-copy">
+          <span className="cover-index">LETTER · 001</span>
+          <h1 id="cover-title">{letterConfig.cover.title}</h1>
+          <p>{letterConfig.cover.subtitle}</p>
+          <button className="cover-open" type="button" onClick={() => changeReading({ opened: true, stage: 0, branch: null })}>
+            {letterConfig.cover.openLabel}<i aria-hidden="true">✦</i>
+          </button>
+        </div>
+        <p className="cover-tip">轻触信封 · 开启一段只属于我们的星轨</p>
+      </section>
+    );
+  } else if (reading.stage <= 2) {
+    content = <ChapterPage chapter={letterConfig.chapters[reading.stage]} onBack={goBack} onNext={goNext} />;
+  } else if (reading.stage === 3) {
+    content = (
+      <BranchQuestion
+        onBack={goBack}
+        onChoose={(branch) => changeReading({ ...reading, branch, stage: 4 })}
+      />
+    );
+  } else if (reading.stage === 4 && reading.branch) {
+    content = <ChapterPage chapter={letterConfig.endings[reading.branch]} onBack={goBack} onNext={goNext} last />;
+  } else if (reading.stage === 5 && reading.branch) {
+    content = <Finish branch={reading.branch} onRestart={() => changeReading(initialState)} />;
+  } else {
+    content = <BranchQuestion onBack={goBack} onChoose={(branch) => changeReading({ ...reading, branch, stage: 4 })} />;
+  }
+
+  return (
+    <main
+      className={`letter-app ${reading.opened ? "is-reading" : "is-sealed"} ${transitioning ? "is-transitioning" : ""}`}
+      onPointerDown={beginTouch}
+      onPointerUp={endTouch}
+    >
+      <Starfield />
+      <div className="edge-coordinate edge-coordinate-left" aria-hidden="true">31°14′ N · 121°29′ E</div>
+      <div className="edge-coordinate edge-coordinate-right" aria-hidden="true">A PRIVATE CONSTELLATION</div>
+      {reading.opened && reading.stage < 5 && <Progress stage={reading.stage} branch={reading.branch} />}
+      <div className="scene-transition" aria-hidden="true" />
+      <div className="scene-shell" key={`${reading.opened}-${reading.stage}-${reading.branch ?? "none"}`}>{content}</div>
     </main>
   );
 }
