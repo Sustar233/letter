@@ -41,3 +41,4 @@ yarn-error.log*
 
 # local handoff artifacts
 /*.zip
+/.sites/
