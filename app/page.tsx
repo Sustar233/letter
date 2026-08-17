@@ -7,6 +7,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import {
   letterContent,
@@ -51,7 +52,7 @@ function StarField({ mood }: { mood: SceneKey }) {
     let frame = 0;
     let stars: CanvasStar[] = [];
     const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
-    const moodLight = mood === "apology" ? 0.68 : mood === "calm" ? 1.08 : 0.9;
+    const moodLight = mood === "intro" ? 0.62 : mood === "apology" ? 0.72 : mood === "calm" ? 1.08 : 0.9;
 
     const resize = () => {
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -62,7 +63,7 @@ function StarField({ mood }: { mood: SceneKey }) {
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      const ceiling = width < 768 ? 120 : 170;
+      const ceiling = mood === "intro" ? (width < 768 ? 88 : 112) : (width < 768 ? 120 : 170);
       const count = Math.max(82, Math.min(ceiling, Math.round((width * height) / 8200)));
       stars = Array.from({ length: count }, (_, index) => ({
         x: Math.random() * width,
@@ -156,36 +157,178 @@ function IntroScene({ onNext }: { onNext: () => void }) {
   return (
     <section className="scene intro-scene" aria-labelledby="intro-title">
       <div className="first-star" aria-hidden="true"><i /></div>
-      <p className="scene-kicker">{intro.chapter} · {intro.time}</p>
-      <h1 id="intro-title">{intro.title}</h1>
+      <p className="intro-project">{intro.title}</p>
+      <p className="scene-kicker">01 · {intro.time}</p>
+      <h1 id="intro-title">{intro.chapter}</h1>
       <p className="intro-subtitle">{intro.subtitle}</p>
-      <div className="intro-rule" aria-hidden="true"><i /></div>
-      <p className="intro-note">{intro.note}</p>
+      <div className="intro-letter">
+        {intro.paragraphs.map((paragraph, index) => {
+          const phrase = "全程友情没有变质";
+          const parts = paragraph.split(phrase);
+          return (
+            <div className="intro-paragraph" key={paragraph}>
+              <p>
+                {parts.length === 2 ? <>{parts[0]}<mark>{phrase}</mark>{parts[1]}</> : paragraph}
+              </p>
+              {index === 1 && (
+                <span className="draft-status" aria-label="第一版已送入碎纸机">
+                  <s>第一版</s><i aria-hidden="true" /> <em>已送入碎纸机</em>
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
       <StoryAction onClick={onNext}>{intro.action}</StoryAction>
       <p className="swipe-hint">向上滑动 · 沿着时间继续</p>
     </section>
   );
 }
 
+function MemoryStarTrail({ memories }: { memories: typeof letterContent.apology.memories }) {
+  const [active, setActive] = useState<number | null>(null);
+
+  return (
+    <section className={`memory-trail ${active !== null ? "has-active" : ""}`} aria-labelledby="memory-trail-title">
+      <header className="interaction-heading">
+        <span>01 · 时间</span>
+        <h2 id="memory-trail-title">那一天的星轨</h2>
+        <p>轻触星点，让那一天慢慢亮起来。</p>
+      </header>
+      <div className="memory-track" onMouseLeave={() => setActive(null)}>
+        <div className="memory-track-line" aria-hidden="true" />
+        {memories.map((memory, index) => (
+          <button
+            className={`memory-point ${active === index ? "is-active" : ""} ${memory.detail ? `memory-${memory.detail}` : ""}`}
+            type="button"
+            aria-expanded={active === index}
+            onMouseEnter={() => setActive(index)}
+            onFocus={() => setActive(index)}
+            onClick={(event) => {
+              const pointerType = (event.nativeEvent as PointerEvent).pointerType;
+              setActive((current) => pointerType === "touch" && current === index ? null : index);
+            }}
+            key={memory.id}
+          >
+            <span className="memory-node" aria-hidden="true"><i /></span>
+            <strong>{memory.label}</strong>
+            <span className="memory-point-copy">{memory.text}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ResonanceStars({ similarities, source }: { similarities: typeof letterContent.apology.similarities; source: string }) {
+  const [active, setActive] = useState<number | null>(null);
+
+  return (
+    <section className={`resonance ${active !== null ? "is-resonating" : ""}`} aria-labelledby="resonance-title" aria-label={source}>
+      <header className="interaction-heading resonance-heading">
+        <span>02 · 关系</span>
+        <h2 id="resonance-title">双星共振</h2>
+        <p>一些很小的事情，也会让两颗星同时亮一下。</p>
+      </header>
+      <div className="resonance-sky" onMouseLeave={() => setActive(null)}>
+        <div className="resonance-star resonance-star-me" aria-hidden="true"><i /><span>我</span></div>
+        <div className="resonance-star resonance-star-you" aria-hidden="true"><i /><span>余音</span></div>
+        <div className="resonance-lines" aria-hidden="true">
+          {similarities.map((item, index) => <i className={active === index ? "is-active" : ""} key={item.id} />)}
+        </div>
+        <div className="similarity-list">
+          {similarities.map((item, index) => (
+            <button
+              className={active === index ? "is-active" : ""}
+              type="button"
+              onMouseEnter={() => setActive(index)}
+              onFocus={() => setActive(index)}
+              onClick={(event) => {
+                const pointerType = (event.nativeEvent as PointerEvent).pointerType;
+                setActive((current) => pointerType === "touch" && current === index ? null : index);
+              }}
+              key={item.id}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ApologyEnding({ lead, finalLine }: { lead: readonly string[]; finalLine: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || !("IntersectionObserver" in window)) {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setVisible(true);
+        observer.disconnect();
+      }
+    }, { threshold: 0.45 });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div className={`apology-coda ${visible ? "is-visible" : ""}`} ref={ref}>
+      {lead.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+      <h2>{finalLine}</h2>
+    </div>
+  );
+}
+
 function ApologyScene({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const content = letterContent.apology;
   return (
-    <section className="scene reading-scene apology-scene" aria-labelledby="apology-title">
-      <div className="reading-copy">
+    <section className="scene apology-scene" aria-labelledby="apology-title">
+      <article className="apology-article">
+        <div id="apology-title">
         <SceneHeading chapter={content.chapter} time={content.time} />
-        <p className="chapter-opening" id="apology-title">{content.opening}</p>
-        <div className="deleted-letter" aria-hidden="true">
-          <span>写下来的话在这里停了一会儿</span>
-          <span>有些句子还没有找到合适的位置</span>
-          <span>光标闪烁，字迹又慢慢退回夜里</span>
-          <i />
         </div>
-        <p className="deleted-note">{content.deletedNote}</p>
-        <div className="letter-paragraphs">
-          {content.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-        </div>
-      </div>
-      <div className="scene-footer">
+        <section className="letter-section distance-section">
+          {content.distance.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        </section>
+
+        <p className="meeting-lead">{content.meetingLead}</p>
+        <MemoryStarTrail memories={content.memories} />
+
+        <section className="letter-section reflection-section">
+          {content.afterMeeting.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        </section>
+
+        <section className="similarity-intro">
+          <p>{content.similarityIntro}</p>
+        </section>
+        <ResonanceStars similarities={content.similarities} source={content.similaritySource} />
+        <p className="resonance-after">{content.afterSimilarity}</p>
+
+        <section className="envy-turn">
+          <p>{content.envyTurn[0]}</p>
+          <h2>{content.envyTurn[1]}</h2>
+        </section>
+
+        <section className="letter-section envy-section">
+          <p>{content.envy}</p>
+          <blockquote className="possibility-block">{content.possibility}</blockquote>
+        </section>
+
+        <section className="letter-section closing-section">
+          {content.closing.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        </section>
+        <p className="hope-line">{content.hope}</p>
+        <ApologyEnding lead={content.apologyLead} finalLine={content.finalLine} />
+      </article>
+
+      <div className="scene-footer apology-footer">
         <button className="story-back" type="button" onClick={onBack}>回到今夜</button>
         <StoryAction onClick={onNext}>{content.action}</StoryAction>
       </div>
@@ -294,11 +437,15 @@ function BlessingScene({ onNext, onBack }: { onNext: () => void; onBack: () => v
 function ChoiceScene({ onChoose, onBack }: { onChoose: (ending: EndingKey) => void; onBack: () => void }) {
   const content = letterContent.choice;
   const [selected, setSelected] = useState<EndingKey | null>(null);
-  const [coarse, setCoarse] = useState(false);
-
-  useEffect(() => {
-    setCoarse(window.matchMedia("(pointer: coarse)").matches);
-  }, []);
+  const coarse = useSyncExternalStore(
+    (onChange) => {
+      const query = window.matchMedia("(pointer: coarse)");
+      query.addEventListener("change", onChange);
+      return () => query.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia("(pointer: coarse)").matches,
+    () => false,
+  );
 
   const activate = (key: EndingKey) => {
     if (!coarse) {
@@ -428,10 +575,16 @@ export default function Home() {
   const touchStart = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
     const timer = window.setTimeout(() => setLoaded(true), 650);
     const debugEnding = new URLSearchParams(window.location.search).get("ending");
-    if (debugEnding === "a" || debugEnding === "b") setScene(`ending-${debugEnding}`);
-    return () => window.clearTimeout(timer);
+    const debugTimer = window.setTimeout(() => {
+      if (debugEnding === "a" || debugEnding === "b") setScene(`ending-${debugEnding}`);
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(debugTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -480,7 +633,6 @@ export default function Home() {
   const advance = useCallback(() => {
     if (photoIndex !== null) return;
     if (scene === "intro") go("apology", "meteor");
-    else if (scene === "apology") go("calm", "brighten");
     else if (scene === "calm") go("blessing", "memory");
     else if (scene === "blessing") go("choice", "two-stars");
   }, [go, photoIndex, scene]);

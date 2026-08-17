@@ -38,6 +38,10 @@ test("keeps editable copy, media slots and both endings in one content file", as
   assert.match(config, /choice:/);
   assert.match(config, /endings:/);
   assert.match(config, /如果故事还有下一页/);
+  assert.match(config, /共有4段，写在不同时间，全程友情没有变质，请放心观看/);
+  assert.match(config, /会在触发晕车debuff后还想着继续挑战，然后成功阵亡\.jpg/);
+  assert.match(config, /或许是从你身上，看到了某种自己曾经想成为、或者直到现在仍然想成为的可能/);
+  assert.match(config, /抱歉，失礼了。/);
   assert.match(config, /src: ""/);
   assert.doesNotMatch(config, /https?:\/\//);
 });
@@ -51,6 +55,8 @@ test("ships responsive, keyboard-friendly and without starter UI", async () => {
   ]);
 
   assert.match(page, /localStorage/);
+  assert.match(page, /function MemoryStarTrail/);
+  assert.match(page, /function ResonanceStars/);
   assert.match(page, /role="tab"/);
   assert.match(page, /type="button"/);
   assert.match(page, /pointerType/);
