@@ -22,22 +22,22 @@ test("server-renders the private starlit letter shell", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>一封信｜写在星空下<\/title>/);
+  assert.match(html, /<title>写给另一颗星<\/title>/);
   assert.match(html, /name="robots" content="noindex, nofollow, nocache"/i);
-  assert.match(html, /正在取出信件/);
+  assert.match(html, /星光正在抵达/);
+  assert.match(html, /我们曾短暂地经过彼此的世界/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
 
-test("keeps editable copy, media slots and both routes in one config", async () => {
-  const config = await readFile(new URL("../app/letter-config.ts", import.meta.url), "utf8");
-  assert.match(config, /recipient: "\[朋友的名字\]"/);
-  assert.match(config, /sender: "\[你的名字\]"/);
-  assert.match(config, /id: "apology"/);
-  assert.match(config, /id: "stillness"/);
-  assert.match(config, /id: "wishes"/);
-  assert.match(config, /farewell:/);
-  assert.match(config, /forward:/);
-  assert.match(config, /你希望再次相逢吗/);
+test("keeps editable copy, media slots and both endings in one content file", async () => {
+  const config = await readFile(new URL("../src/content/letter.ts", import.meta.url), "utf8");
+  assert.match(config, /intro:/);
+  assert.match(config, /apology:/);
+  assert.match(config, /calm:/);
+  assert.match(config, /blessing:/);
+  assert.match(config, /choice:/);
+  assert.match(config, /endings:/);
+  assert.match(config, /如果故事还有下一页/);
   assert.match(config, /src: ""/);
   assert.doesNotMatch(config, /https?:\/\//);
 });
@@ -51,10 +51,11 @@ test("ships responsive, keyboard-friendly and without starter UI", async () => {
   ]);
 
   assert.match(page, /localStorage/);
-  assert.match(page, /ArrowLeft/);
+  assert.match(page, /role="tab"/);
+  assert.match(page, /type="button"/);
   assert.match(page, /pointerType/);
   assert.match(css, /prefers-reduced-motion/);
-  assert.match(css, /@media \(max-width: 760px\)/);
+  assert.match(css, /@media \(max-width: 768px\)/);
   assert.match(layout, /index:\s*false/);
   assert.match(layout, /og\.png/);
   assert.doesNotMatch(layout, /next\/font|codex-preview/);

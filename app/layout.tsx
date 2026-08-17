@@ -5,8 +5,8 @@ const siteUrl = "https://starlit-letter.openai.site";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "一封信｜写在星空下",
-  description: "一封沿着回忆、祝愿与两条星轨缓缓展开的私人信件。",
+  title: "写给另一颗星",
+  description: "我们曾短暂地经过彼此的世界。",
   robots: {
     index: false,
     follow: false,
@@ -19,15 +19,15 @@ export const metadata: Metadata = {
   },
   referrer: "no-referrer",
   openGraph: {
-    title: "一封信｜写在星空下",
-    description: "有些话适合留到夜深，再慢慢写给你。",
+    title: "写给另一颗星",
+    description: "我们曾短暂地经过彼此的世界。",
     type: "website",
-    images: [{ url: "/og.png", width: 1536, height: 1024, alt: "一封写在星空下的信" }],
+    images: [{ url: "/og.png", width: 1536, height: 1024, alt: "写给另一颗星" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "一封信｜写在星空下",
-    description: "有些话适合留到夜深，再慢慢写给你。",
+    title: "写给另一颗星",
+    description: "我们曾短暂地经过彼此的世界。",
     images: ["/og.png"],
   },
 };
@@ -37,7 +37,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   colorScheme: "dark",
-  themeColor: "#030c18",
+  themeColor: "#05070d",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
