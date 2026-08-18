@@ -42,6 +42,11 @@ test("keeps editable copy, media slots and both endings in one content file", as
   assert.match(config, /会在触发晕车debuff后还想着继续挑战，然后成功阵亡\.jpg/);
   assert.match(config, /或许是从你身上，看到了某种自己曾经想成为、或者直到现在仍然想成为的可能/);
   assert.match(config, /抱歉，失礼了。/);
+  assert.match(config, /id: "03-20"/);
+  assert.match(config, /priority: "hero"/);
+  assert.match(config, /priority: "normal"/);
+  assert.match(config, /priority: "fragment"/);
+  assert.match(config, /写于 8\.8 下午/);
   assert.match(config, /src: ""/);
   assert.doesNotMatch(config, /https?:\/\//);
 });
@@ -57,6 +62,9 @@ test("ships responsive, keyboard-friendly and without starter UI", async () => {
   assert.match(page, /localStorage/);
   assert.match(page, /function MemoryStarTrail/);
   assert.match(page, /function ResonanceStars/);
+  assert.match(page, /function PhotoStoryGroup/);
+  assert.match(page, /function AfternoonPause/);
+  assert.match(page, /function NightReturn/);
   assert.match(page, /role="tab"/);
   assert.match(page, /type="button"/);
   assert.match(page, /pointerType/);

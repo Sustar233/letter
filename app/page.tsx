@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -17,13 +16,6 @@ import {
 
 type SceneKey = "intro" | "apology" | "calm" | "blessing" | "choice" | "ending-a" | "ending-b";
 type TransitionKey = "meteor" | "brighten" | "memory" | "two-stars" | "separate" | "future" | null;
-
-const PHOTO_POSITIONS = [
-  { x: "18%", y: "28%" },
-  { x: "69%", y: "19%" },
-  { x: "77%", y: "68%" },
-  { x: "31%", y: "76%" },
-];
 
 type CanvasStar = {
   x: number;
@@ -415,47 +407,159 @@ function ApologyScene({ onNext, onBack }: { onNext: () => void; onBack: () => vo
   );
 }
 
-function PhotoMap({ photos, onOpen }: { photos: readonly PhotoMemory[]; onOpen: (index: number) => void }) {
+function PhotoCard({
+  photo,
+  index,
+  onOpen,
+}: {
+  photo: PhotoMemory;
+  index: number;
+  onOpen: (index: number) => void;
+}) {
   return (
-    <div className="photo-map" aria-label="世界之窗照片星图">
-      <div className="photo-orbit orbit-one" aria-hidden="true" />
-      <div className="photo-orbit orbit-two" aria-hidden="true" />
-      {photos.map((photo, index) => (
-        <button
-          className="photo-star"
-          style={{ "--x": PHOTO_POSITIONS[index].x, "--y": PHOTO_POSITIONS[index].y } as CSSProperties}
-          type="button"
-          onClick={() => onOpen(index)}
-          aria-label={`打开照片 ${index + 1}：${photo.alt}`}
-          key={`${photo.alt}-${index}`}
-        >
+    <figure className={`travel-photo photo-${photo.priority}`}>
+      <button type="button" onClick={() => onOpen(index)} aria-label={`查看照片 ${index + 1}：${photo.alt}`}>
+        <span className="travel-photo-media">
+          {photo.src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photo.src} alt={photo.alt} loading={index < 2 ? "eager" : "lazy"} />
+          ) : (
+            <span className="travel-photo-placeholder" role="img" aria-label={photo.alt}>
+              <i aria-hidden="true" />
+              <strong>{String(index + 1).padStart(2, "0")}</strong>
+              <small>照片待放入</small>
+            </span>
+          )}
+        </span>
+      </button>
+      <figcaption>
+        <span>{photo.date}{photo.location ? ` · ${photo.location}` : ""}</span>
+        {photo.tag && <em>{photo.tag}</em>}
+        {photo.caption && <p>{photo.caption}</p>}
+      </figcaption>
+    </figure>
+  );
+}
+
+function PhotoStoryGroup({
+  group,
+  photos,
+  allPhotos,
+  onOpen,
+}: {
+  group: (typeof letterContent.calm.groups)[number];
+  photos: readonly PhotoMemory[];
+  allPhotos: readonly PhotoMemory[];
+  onOpen: (index: number) => void;
+}) {
+  const [ref, visible] = useOnceInView<HTMLElement>(0.08);
+  const hero = photos.find((photo) => photo.priority === "hero");
+  const normal = photos.filter((photo) => photo.priority === "normal");
+  const fragments = photos.filter((photo) => photo.priority === "fragment");
+  const card = (photo: PhotoMemory) => (
+    <PhotoCard
+      photo={photo}
+      index={allPhotos.findIndex((item) => item.id === photo.id)}
+      onOpen={onOpen}
+      key={photo.id}
+    />
+  );
+
+  return (
+    <section className={`photo-story-group phase-${group.phase} ${visible ? "is-visible" : ""}`} ref={ref} aria-labelledby={`photo-group-${group.id}`}>
+      <header className="photo-group-heading">
+        <span>{group.number} / 05</span>
+        <h3 id={`photo-group-${group.id}`}>{group.title}</h3>
+        <p>{group.note}</p>
+      </header>
+      {hero && <div className="hero-photo-wrap">{card(hero)}</div>}
+      {normal.length > 0 && <div className="photo-pair-grid">{normal.map(card)}</div>}
+      {fragments.length > 0 && (
+        <div className="photo-filmstrip" aria-label={`${group.title}的旅行碎片`}>
+          {fragments.map(card)}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AfternoonPause() {
+  const content = letterContent.calm.afternoon;
+  const [ref, visible] = useOnceInView<HTMLElement>(0.25);
+  return (
+    <section className={`afternoon-pause ${visible ? "is-visible" : ""}`} ref={ref} aria-labelledby="afternoon-title">
+      <div className="auditorium-light" aria-hidden="true"><i /><i /><i /></div>
+      <div className="afternoon-copy">
+        <p id="afternoon-title">{content.label}<span aria-hidden="true">|</span></p>
+        <blockquote>{content.location}</blockquote>
+      </div>
+    </section>
+  );
+}
+
+function NightReturn({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+  const content = letterContent.calm;
+  const [ref, visible] = useOnceInView<HTMLElement>(0.22);
+  return (
+    <section className={`calm-night-return ${visible ? "is-visible" : ""}`} ref={ref} aria-labelledby="night-return-title">
+      <div className="night-first-star" aria-hidden="true"><i /></div>
+      <div className="night-copy">
+        <span>{content.night.label}</span>
+        <h3 id="night-return-title">{content.night.title}</h3>
+        <p>{content.night.note}</p>
+        <button className="night-media-reserve" type="button" disabled aria-label="现场声音素材待补充">
           <i aria-hidden="true" />
-          <span>{String(index + 1).padStart(2, "0")}</span>
+          <span>{content.night.media}</span>
         </button>
-      ))}
-      <p>轻触更亮的星</p>
-    </div>
+      </div>
+      <div className="next-chapter-reserve">
+        <p>{content.nextChapter}</p>
+        <div className="scene-footer calm-footer">
+          <button className="story-back" type="button" onClick={onBack}>回到那封删掉的信</button>
+          <StoryAction onClick={onNext}>{content.action}</StoryAction>
+        </div>
+      </div>
+    </section>
   );
 }
 
 function CalmScene({ onNext, onBack, onOpen }: { onNext: () => void; onBack: () => void; onOpen: (index: number) => void }) {
   const content = letterContent.calm;
   return (
-    <section className="scene reading-scene calm-scene" aria-labelledby="calm-title">
-      <div className="scene-split">
-        <div className="reading-copy">
-          <SceneHeading chapter={content.chapter} time={content.time} />
-          <h2 className="chapter-title" id="calm-title">{content.title}</h2>
-          <div className="letter-paragraphs">
-            {content.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-          </div>
+    <section className="scene calm-scene" aria-labelledby="calm-title">
+      <div className="calm-opening">
+        <div className="calm-day-stars" aria-hidden="true"><i /><i /><i /></div>
+        <div className="calm-date" aria-label="八月八日，世界之窗">
+          <span>08.08</span>
+          <small>WINDOW OF THE WORLD</small>
         </div>
-        <PhotoMap photos={content.photos} onOpen={onOpen} />
+        <p className="calm-chapter-no">03</p>
+        <SceneHeading chapter={content.chapter} time={content.time} />
+        <h2 className="chapter-title" id="calm-title">{content.title}</h2>
+        <div className="letter-paragraphs calm-intro-copy">
+          {content.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        </div>
+        <p className="calm-scroll-cue">沿着白昼继续</p>
       </div>
-      <div className="scene-footer">
-        <button className="story-back" type="button" onClick={onBack}>回到那封删掉的信</button>
-        <StoryAction onClick={onNext}>{content.action}</StoryAction>
+      <div className="photo-story">
+        {content.groups.map((group) => (
+          <PhotoStoryGroup
+            group={group}
+            photos={content.photos.filter((photo) => photo.group === group.id)}
+            allPhotos={content.photos}
+            onOpen={onOpen}
+            key={group.id}
+          />
+        ))}
       </div>
+      <AfternoonPause />
+      <section className="calm-reflection" aria-labelledby="reflection-title">
+        <span>REFLECTION</span>
+        <h3 id="reflection-title">停下来以后</h3>
+        {content.reflection.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+      </section>
+      <div className="sunset-bridge" aria-hidden="true"><i /></div>
+      <NightReturn onBack={onBack} onNext={onNext} />
     </section>
   );
 }
@@ -604,6 +708,17 @@ function EndingScene({ ending, onRestart, onBack }: { ending: EndingKey; onResta
 
 function PhotoModal({ photo, index, total, onClose, onStep }: { photo: PhotoMemory; index: number; total: number; onClose: () => void; onStep: (direction: number) => void }) {
   const startX = useRef(0);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowLeft") onStep(-1);
+      if (event.key === "ArrowRight") onStep(1);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose, onStep]);
+
   const onStart = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.stopPropagation();
     startX.current = event.clientX;
@@ -632,7 +747,7 @@ function PhotoModal({ photo, index, total, onClose, onStep }: { photo: PhotoMemo
         </div>
         <figcaption>
           <span>{photo.date}{photo.location ? ` · ${photo.location}` : ""}</span>
-          <p>{photo.caption}</p>
+          {photo.caption && <p>{photo.caption}</p>}
           <small>{String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}</small>
         </figcaption>
       </figure>
@@ -657,8 +772,10 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "instant" });
     const timer = window.setTimeout(() => setLoaded(true), 650);
     const debugEnding = new URLSearchParams(window.location.search).get("ending");
+    const debugScene = new URLSearchParams(window.location.search).get("scene");
     const debugTimer = window.setTimeout(() => {
-      if (debugEnding === "a" || debugEnding === "b") setScene(`ending-${debugEnding}`);
+      if (debugScene === "calm") setScene("calm");
+      else if (debugEnding === "a" || debugEnding === "b") setScene(`ending-${debugEnding}`);
     }, 0);
     return () => {
       window.clearTimeout(timer);
