@@ -152,6 +152,29 @@ function StoryAction({ children, onClick }: { children: React.ReactNode; onClick
   );
 }
 
+function useOnceInView<T extends HTMLElement>(threshold = 0.24) {
+  const ref = useRef<T>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || !("IntersectionObserver" in window)) {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setVisible(true);
+        observer.disconnect();
+      }
+    }, { threshold });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [threshold]);
+
+  return [ref, visible] as const;
+}
+
 function IntroScene({ onNext }: { onNext: () => void }) {
   const intro = letterContent.intro;
   return (
@@ -187,16 +210,32 @@ function IntroScene({ onNext }: { onNext: () => void }) {
 
 function MemoryStarTrail({ memories }: { memories: typeof letterContent.apology.memories }) {
   const [active, setActive] = useState<number | null>(null);
+  const [ref, visible] = useOnceInView<HTMLElement>(0.18);
 
   return (
-    <section className={`memory-trail ${active !== null ? "has-active" : ""}`} aria-labelledby="memory-trail-title">
+    <section
+      className={`memory-trail ${visible ? "is-visible" : ""} ${active !== null ? "has-active" : ""}`}
+      aria-labelledby="memory-trail-title"
+      ref={ref}
+    >
       <header className="interaction-heading">
         <span>01 · 时间</span>
         <h2 id="memory-trail-title">那一天的星轨</h2>
         <p>轻触星点，让那一天慢慢亮起来。</p>
       </header>
-      <div className="memory-track" onMouseLeave={() => setActive(null)}>
-        <div className="memory-track-line" aria-hidden="true" />
+      <div
+        className="memory-track"
+        onMouseLeave={() => setActive(null)}
+        onPointerDown={(event) => {
+          if (!(event.target as HTMLElement).closest("button")) setActive(null);
+        }}
+      >
+        <svg className="memory-path memory-path-desktop" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true">
+          <path pathLength="1" d="M 100 48 C 170 22, 228 84, 300 73 S 430 30, 500 56 S 630 104, 700 82 S 830 22, 900 47" />
+        </svg>
+        <svg className="memory-path memory-path-mobile" viewBox="0 0 80 360" preserveAspectRatio="none" aria-hidden="true">
+          <path pathLength="1" d="M 28 28 C 21 50, 43 74, 40 100 S 17 137, 24 172 S 49 207, 42 244 S 22 282, 31 316" />
+        </svg>
         {memories.map((memory, index) => (
           <button
             className={`memory-point ${active === index ? "is-active" : ""} ${memory.detail ? `memory-${memory.detail}` : ""}`}
@@ -222,20 +261,51 @@ function MemoryStarTrail({ memories }: { memories: typeof letterContent.apology.
 
 function ResonanceStars({ similarities, source }: { similarities: typeof letterContent.apology.similarities; source: string }) {
   const [active, setActive] = useState<number | null>(null);
+  const [ref, visible] = useOnceInView<HTMLElement>(0.2);
+  const desktopPaths = [
+    "M 88 210 C 205 42, 420 42, 912 210",
+    "M 88 210 C 244 85, 598 18, 912 210",
+    "M 88 210 C 275 142, 505 110, 912 210",
+    "M 88 210 C 300 204, 615 248, 912 210",
+    "M 88 210 C 235 310, 540 336, 912 210",
+    "M 88 210 C 250 380, 690 350, 912 210",
+  ];
+  const mobilePaths = [
+    "M 42 48 C 70 96, 206 82, 318 412",
+    "M 42 48 C 112 88, 250 130, 318 412",
+    "M 42 48 C 94 154, 202 178, 318 412",
+    "M 42 48 C 142 188, 246 218, 318 412",
+    "M 42 48 C 82 236, 188 292, 318 412",
+    "M 42 48 C 122 270, 260 314, 318 412",
+  ];
 
   return (
-    <section className={`resonance ${active !== null ? "is-resonating" : ""}`} aria-labelledby="resonance-title" aria-label={source}>
+    <section
+      className={`resonance ${visible ? "is-visible" : ""} ${active !== null ? "is-resonating" : ""}`}
+      aria-labelledby="resonance-title"
+      aria-label={source}
+      ref={ref}
+    >
       <header className="interaction-heading resonance-heading">
         <span>02 · 关系</span>
         <h2 id="resonance-title">双星共振</h2>
         <p>一些很小的事情，也会让两颗星同时亮一下。</p>
       </header>
-      <div className="resonance-sky" onMouseLeave={() => setActive(null)}>
-        <div className="resonance-star resonance-star-me" aria-hidden="true"><i /><span>我</span></div>
-        <div className="resonance-star resonance-star-you" aria-hidden="true"><i /><span>余音</span></div>
-        <div className="resonance-lines" aria-hidden="true">
-          {similarities.map((item, index) => <i className={active === index ? "is-active" : ""} key={item.id} />)}
-        </div>
+      <div
+        className="resonance-sky"
+        onMouseLeave={() => setActive(null)}
+        onPointerDown={(event) => {
+          if (!(event.target as HTMLElement).closest("button")) setActive(null);
+        }}
+      >
+        <div className="resonance-star resonance-star-me" aria-hidden="true" key={`me-${active ?? "rest"}`}><i /><span>我</span></div>
+        <div className="resonance-star resonance-star-you" aria-hidden="true" key={`you-${active ?? "rest"}`}><i /><span>余音</span></div>
+        <svg className="resonance-paths resonance-paths-desktop" viewBox="0 0 1000 420" preserveAspectRatio="none" aria-hidden="true">
+          {desktopPaths.map((path, index) => <path className={active === index ? "is-active" : ""} d={path} pathLength="1" key={similarities[index].id} />)}
+        </svg>
+        <svg className="resonance-paths resonance-paths-mobile" viewBox="0 0 360 460" preserveAspectRatio="none" aria-hidden="true">
+          {mobilePaths.map((path, index) => <path className={active === index ? "is-active" : ""} d={path} pathLength="1" key={similarities[index].id} />)}
+        </svg>
         <div className="similarity-list">
           {similarities.map((item, index) => (
             <button
@@ -258,6 +328,11 @@ function ResonanceStars({ similarities, source }: { similarities: typeof letterC
   );
 }
 
+function PossibilityBlock({ children }: { children: string }) {
+  const [ref, visible] = useOnceInView<HTMLQuoteElement>(0.55);
+  return <blockquote className={`possibility-block ${visible ? "is-visible" : ""}`} ref={ref}>{children}</blockquote>;
+}
+
 function ApologyEnding({ lead, finalLine }: { lead: readonly string[]; finalLine: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -278,10 +353,14 @@ function ApologyEnding({ lead, finalLine }: { lead: readonly string[]; finalLine
     return () => observer.disconnect();
   }, []);
 
+  const secondPartIndex = finalLine.indexOf("失礼了");
+  const firstPart = secondPartIndex >= 0 ? finalLine.slice(0, secondPartIndex) : finalLine;
+  const secondPart = secondPartIndex >= 0 ? finalLine.slice(secondPartIndex) : "";
+
   return (
     <div className={`apology-coda ${visible ? "is-visible" : ""}`} ref={ref}>
       {lead.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-      <h2>{finalLine}</h2>
+      <h2><span>{firstPart}</span><span>{secondPart}</span></h2>
     </div>
   );
 }
@@ -318,7 +397,7 @@ function ApologyScene({ onNext, onBack }: { onNext: () => void; onBack: () => vo
 
         <section className="letter-section envy-section">
           <p>{content.envy}</p>
-          <blockquote className="possibility-block">{content.possibility}</blockquote>
+          <PossibilityBlock>{content.possibility}</PossibilityBlock>
         </section>
 
         <section className="letter-section closing-section">
