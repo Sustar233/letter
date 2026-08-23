@@ -14,7 +14,7 @@ import {
   type PhotoMemory,
 } from "../src/content/letter";
 
-type SceneKey = "intro" | "apology" | "calm" | "blessing" | "choice" | "ending-a" | "ending-b";
+type SceneKey = "intro" | "apology" | "calm" | "choice" | "ending-a" | "ending-b";
 type TransitionKey = "meteor" | "brighten" | "memory" | "two-stars" | "separate" | "future" | null;
 
 type CanvasStar = {
@@ -563,61 +563,24 @@ function CalmScene({ onNext, onBack, onOpen }: { onNext: () => void; onBack: () 
   );
 }
 
-function BlessingScene({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
-  const content = letterContent.blessing;
-  const [active, setActive] = useState(0);
-  const [visited, setVisited] = useState(() => new Set([0]));
-
-  const select = (index: number) => {
-    setActive(index);
-    setVisited((current) => new Set(current).add(index));
-  };
-
-  const complete = visited.size === content.items.length;
-  return (
-    <section className="scene blessing-scene" aria-labelledby="blessing-title">
-      <div className="blessing-layout">
-        <div className="reading-copy">
-          <SceneHeading chapter={content.chapter} time={content.time} />
-          <h2 className="chapter-title" id="blessing-title">{content.title}</h2>
-          <div className="blessing-copy" aria-live="polite">
-            <span>{String(active + 1).padStart(2, "0")}</span>
-            <h3>{content.items[active].label}</h3>
-            <p>{content.items[active].caption}</p>
-          </div>
-        </div>
-        <div className="blessing-stars" role="tablist" aria-label="三份祝愿">
-          {content.items.map((item, index) => (
-            <button
-              className={active === index ? "is-active" : ""}
-              type="button"
-              role="tab"
-              aria-selected={active === index}
-              onClick={() => select(index)}
-              key={item.label}
-            >
-              <i aria-hidden="true" />
-              <span>{item.label}</span>
-            </button>
-          ))}
-          <div className="blessing-track" aria-hidden="true" />
-        </div>
-      </div>
-      <div className="scene-footer">
-        <button className="story-back" type="button" onClick={onBack}>回到世界之窗</button>
-        <div className="blessing-next">
-          {!complete && <small>再读完 {content.items.length - visited.size} 颗星</small>}
-          <StoryAction onClick={complete ? onNext : () => select((active + 1) % content.items.length)}>
-            {complete ? content.action : "读下一颗星"}
-          </StoryAction>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ChoiceScene({ onChoose, onBack }: { onChoose: (ending: EndingKey) => void; onBack: () => void }) {
+function ChoiceScene({
+  entryPart,
+  onChoose,
+  onBack,
+  onPartChange,
+}: {
+  entryPart: 0 | 1;
+  onChoose: (ending: EndingKey) => void;
+  onBack: () => void;
+  onPartChange: (part: 0 | 1) => void;
+}) {
+  const blessing = letterContent.blessing;
   const content = letterContent.choice;
+  const blessingRef = useRef<HTMLElement>(null);
+  const choiceRef = useRef<HTMLElement>(null);
+  const initialPart = useRef(entryPart);
+  const [activeBlessing, setActiveBlessing] = useState(0);
+  const [visitedBlessings, setVisitedBlessings] = useState(() => new Set([0]));
   const [selected, setSelected] = useState<EndingKey | null>(null);
   const coarse = useSyncExternalStore(
     (onChange) => {
@@ -629,6 +592,39 @@ function ChoiceScene({ onChoose, onBack }: { onChoose: (ending: EndingKey) => vo
     () => false,
   );
 
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const target = initialPart.current === 1 ? choiceRef.current : blessingRef.current;
+      target?.scrollIntoView({ block: "start", behavior: "instant" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    const sections = [blessingRef.current, choiceRef.current].filter((section): section is HTMLElement => Boolean(section));
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (visible) onPartChange(Number((visible.target as HTMLElement).dataset.part) as 0 | 1);
+    }, { rootMargin: "-32% 0px -32% 0px", threshold: [0, 0.2, 0.5] });
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [onPartChange]);
+
+  const selectBlessing = (index: number) => {
+    setActiveBlessing(index);
+    setVisitedBlessings((current) => new Set(current).add(index));
+  };
+
+  const scrollToPart = (part: 0 | 1) => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const target = part === 0 ? blessingRef.current : choiceRef.current;
+    target?.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+  };
+
+  const blessingComplete = visitedBlessings.size === blessing.items.length;
+
   const activate = (key: EndingKey) => {
     if (!coarse) {
       onChoose(key);
@@ -639,42 +635,86 @@ function ChoiceScene({ onChoose, onBack }: { onChoose: (ending: EndingKey) => vo
   };
 
   return (
-    <section className={`scene choice-scene ${selected ? `has-choice choice-${selected}` : ""}`} aria-labelledby="choice-title">
-      <header className="choice-heading">
-        <p>{content.time}</p>
-        <h1 id="choice-title">{content.title}</h1>
-        <h2>{content.subtitle}</h2>
-      </header>
-      <div className="choice-system">
-        <div className="choice-track" aria-hidden="true"><i /></div>
-        {(Object.keys(content.options) as EndingKey[]).map((key) => {
-          const option = content.options[key];
-          return (
-            <button
-              className={`choice-option choice-option-${key} ${selected === key ? "is-selected" : ""}`}
-              type="button"
-              onClick={() => activate(key)}
-              onMouseEnter={() => !coarse && setSelected(key)}
-              onFocus={() => setSelected(key)}
-              aria-label={`${option.label}。${option.lines.join("")}`}
-              key={key}
-            >
-              <span className="choice-star" aria-hidden="true"><i /></span>
-              <span className="choice-copy">
-                <small>{key === "a" ? "A · 告别篇" : "B · 展望篇"}</small>
-                <strong>{option.label}</strong>
-                {option.lines.map((line) => <em key={line}>{line}</em>)}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      {coarse && selected && (
-        <button className="choice-confirm" type="button" onClick={() => onChoose(selected)}>
-          选择这颗星
-        </button>
-      )}
-      <button className="story-back choice-back" type="button" onClick={onBack}>回到三颗祝愿</button>
+    <section className={`scene choice-scene ${selected ? `has-choice choice-${selected}` : ""}`} aria-label="祝愿与抉择">
+      <section className="choice-section choice-blessing-section" data-part="0" ref={blessingRef} aria-labelledby="blessing-title">
+        <p className="choice-part-kicker">第一部分 · 祝愿</p>
+        <div className="blessing-layout">
+          <div className="reading-copy">
+            <SceneHeading chapter={blessing.chapter} time={blessing.time} />
+            <h2 className="chapter-title" id="blessing-title">{blessing.title}</h2>
+            <div className="blessing-copy" aria-live="polite">
+              <span>{String(activeBlessing + 1).padStart(2, "0")}</span>
+              <h3>{blessing.items[activeBlessing].label}</h3>
+              <p>{blessing.items[activeBlessing].caption}</p>
+            </div>
+          </div>
+          <div className="blessing-stars" role="tablist" aria-label="三份祝愿">
+            {blessing.items.map((item, index) => (
+              <button
+                className={activeBlessing === index ? "is-active" : ""}
+                type="button"
+                role="tab"
+                aria-selected={activeBlessing === index}
+                onClick={() => selectBlessing(index)}
+                key={item.label}
+              >
+                <i aria-hidden="true" />
+                <span>{item.label}</span>
+              </button>
+            ))}
+            <div className="blessing-track" aria-hidden="true" />
+          </div>
+        </div>
+        <div className="scene-footer">
+          <button className="story-back" type="button" onClick={onBack}>回到世界之窗</button>
+          <div className="blessing-next">
+            {!blessingComplete && <small>再读完 {blessing.items.length - visitedBlessings.size} 颗星</small>}
+            <StoryAction onClick={blessingComplete ? () => scrollToPart(1) : () => selectBlessing((activeBlessing + 1) % blessing.items.length)}>
+              {blessingComplete ? blessing.action : "读下一颗星"}
+            </StoryAction>
+          </div>
+        </div>
+        <span className="choice-section-link" aria-hidden="true">继续向下 · 抉择</span>
+      </section>
+
+      <section className="choice-section choice-decision-section" data-part="1" ref={choiceRef} aria-labelledby="choice-title">
+        <p className="choice-part-kicker">第二部分 · 抉择</p>
+        <header className="choice-heading">
+          <p>{content.time}</p>
+          <h1 id="choice-title">{content.title}</h1>
+          <h2>{content.subtitle}</h2>
+        </header>
+        <div className="choice-system">
+          <div className="choice-track" aria-hidden="true"><i /></div>
+          {(Object.keys(content.options) as EndingKey[]).map((key) => {
+            const option = content.options[key];
+            return (
+              <button
+                className={`choice-option choice-option-${key} ${selected === key ? "is-selected" : ""}`}
+                type="button"
+                onClick={() => activate(key)}
+                onMouseEnter={() => !coarse && setSelected(key)}
+                onFocus={() => setSelected(key)}
+                aria-label={`${option.label}。${option.lines.join("")}`}
+                key={key}
+              >
+                <span className="choice-star" aria-hidden="true"><i /></span>
+                <span className="choice-copy">
+                  <small>{key === "a" ? "A · 告别篇" : "B · 展望篇"}</small>
+                  <strong>{option.label}</strong>
+                  {option.lines.map((line) => <em key={line}>{line}</em>)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {coarse && selected && (
+          <button className="choice-confirm" type="button" onClick={() => onChoose(selected)}>
+            选择这颗星
+          </button>
+        )}
+        <button className="story-back choice-back" type="button" onClick={() => scrollToPart(0)}>回到祝愿</button>
+      </section>
     </section>
   );
 }
@@ -765,6 +805,7 @@ export default function Home() {
   const [transition, setTransition] = useState<TransitionKey>(null);
   const [transitioning, setTransitioning] = useState(false);
   const [photoIndex, setPhotoIndex] = useState<number | null>(null);
+  const [choicePart, setChoicePart] = useState<0 | 1>(0);
   const touchStart = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -774,6 +815,7 @@ export default function Home() {
     const debugScene = new URLSearchParams(window.location.search).get("scene");
     const debugTimer = window.setTimeout(() => {
       if (debugScene === "calm") setScene("calm");
+      else if (debugScene === "choice") setScene("choice");
       else if (debugEnding === "a" || debugEnding === "b") setScene(`ending-${debugEnding}`);
     }, 0);
     return () => {
@@ -828,8 +870,10 @@ export default function Home() {
   const advance = useCallback(() => {
     if (photoIndex !== null) return;
     if (scene === "intro") go("apology", "meteor");
-    else if (scene === "calm") go("blessing", "memory");
-    else if (scene === "blessing") go("choice", "two-stars");
+    else if (scene === "calm") {
+      setChoicePart(0);
+      go("choice", "memory");
+    }
   }, [go, photoIndex, scene]);
 
   const beginTouch = (event: ReactPointerEvent<HTMLElement>) => {
@@ -843,19 +887,17 @@ export default function Home() {
     if (deltaY < -72 && Math.abs(deltaY) > Math.abs(deltaX)) advance();
   };
 
-  const activeTime = scene === "intro" ? 0 : scene === "apology" ? 1 : scene === "calm" ? 2 : scene === "blessing" ? 3 : 4;
+  const activeTime = scene === "intro" ? 0 : scene === "apology" ? 1 : scene === "calm" ? 2 : scene === "choice" ? 3 + choicePart : 4;
   const sceneContent = scene === "intro" ? (
     <IntroScene onNext={() => go("apology", "meteor")} />
   ) : scene === "apology" ? (
     <ApologyScene onBack={() => go("intro", "memory")} onNext={() => go("calm", "brighten")} />
   ) : scene === "calm" ? (
-    <CalmScene onBack={() => go("apology", "memory")} onNext={() => go("blessing", "memory")} onOpen={setPhotoIndex} />
-  ) : scene === "blessing" ? (
-    <BlessingScene onBack={() => go("calm", "memory")} onNext={() => go("choice", "two-stars")} />
+    <CalmScene onBack={() => go("apology", "memory")} onNext={() => { setChoicePart(0); go("choice", "memory"); }} onOpen={setPhotoIndex} />
   ) : scene === "choice" ? (
-    <ChoiceScene onBack={() => go("blessing", "memory")} onChoose={choose} />
+    <ChoiceScene entryPart={choicePart} onBack={() => go("calm", "memory")} onChoose={choose} onPartChange={setChoicePart} />
   ) : (
-    <EndingScene ending={scene === "ending-a" ? "a" : "b"} onBack={() => go("choice", "two-stars")} onRestart={restart} />
+    <EndingScene ending={scene === "ending-a" ? "a" : "b"} onBack={() => { setChoicePart(1); go("choice", "two-stars"); }} onRestart={restart} />
   );
 
   return (

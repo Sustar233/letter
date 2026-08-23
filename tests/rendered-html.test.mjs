@@ -65,6 +65,11 @@ test("ships responsive, keyboard-friendly and without starter UI", async () => {
   assert.match(page, /function PhotoStoryGroup/);
   assert.match(page, /function AfternoonPause/);
   assert.match(page, /function NightReturn/);
+  assert.doesNotMatch(page, /function BlessingScene/);
+  assert.match(page, /第一部分 · 祝愿/);
+  assert.match(page, /第二部分 · 抉择/);
+  assert.match(page, /data-part="0"/);
+  assert.match(page, /data-part="1"/);
   assert.match(page, /role="tab"/);
   assert.match(page, /type="button"/);
   assert.match(page, /pointerType/);

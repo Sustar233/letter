@@ -380,7 +380,7 @@ export const letterContent = {
       media: "现场视频 / 音频待补充",
     },
     nextChapter: "后来，我开始想一些更远的事情。",
-    action: "04｜祝愿",
+    action: "04｜抉择",
   },
   blessing: {
     chapter: "祝愿",
@@ -400,7 +400,7 @@ export const letterContent = {
         caption: "【这里填写想送给对方的祝愿】",
       },
     ],
-    action: "还有最后一个问题",
+    action: "去做最后的抉择",
   },
   choice: {
     time: "未来",

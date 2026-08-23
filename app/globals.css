@@ -167,8 +167,7 @@ button:focus-visible {
   animation: sceneEnter 1.25s var(--ease-story) both;
 }
 
-.reading-scene,
-.blessing-scene {
+.reading-scene {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1488,12 +1487,50 @@ button:focus-visible {
 
 /* Choice */
 .choice-scene {
+  width: 100%;
+  min-height: 200svh;
+  padding: 0;
+}
+
+.choice-section {
+  position: relative;
   display: flex;
   width: min(1050px, calc(100% - 140px));
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: max(84px, 10vh) 34px max(58px, 7vh);
   flex-direction: column;
-  align-items: center;
   justify-content: center;
+  scroll-margin-top: 0;
+}
+
+.choice-blessing-section {
+  border-bottom: 1px solid rgba(186, 196, 255, 0.08);
+}
+
+.choice-decision-section {
+  align-items: center;
   text-align: center;
+}
+
+.choice-part-kicker {
+  margin: 0 0 clamp(28px, 5vh, 52px);
+  color: rgba(220, 228, 255, 0.24);
+  font-size: 8px;
+  letter-spacing: 0.24em;
+}
+
+.choice-decision-section > .choice-part-kicker { margin-bottom: 26px; }
+
+.choice-section-link {
+  position: absolute;
+  left: 50%;
+  bottom: 23px;
+  transform: translateX(-50%);
+  color: rgba(220, 228, 255, 0.18);
+  font-size: 7px;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
 }
 
 .choice-heading > p { margin: 0 0 18px; color: rgba(220, 228, 255, 0.35); font-size: 9px; letter-spacing: 0.27em; }
@@ -1846,7 +1883,7 @@ button:focus-visible {
   .scene-split,
   .blessing-layout { grid-template-columns: minmax(300px, 0.95fr) minmax(330px, 1.05fr); gap: 38px; }
   .ending-scene { width: calc(100% - 90px); gap: 35px; }
-  .choice-scene { width: calc(100% - 90px); }
+  .choice-section { width: calc(100% - 90px); }
 }
 
 @media (max-width: 768px) {
@@ -2058,7 +2095,11 @@ button:focus-visible {
   .blessing-copy { min-height: 170px; margin-top: 22px; }
   .blessing-next small { font-size: 7px; }
 
-  .choice-scene { width: 100%; justify-content: flex-start; padding-top: 103px; }
+  .choice-scene { width: 100%; }
+  .choice-section { width: 100%; padding: 103px 24px max(60px, env(safe-area-inset-bottom)); }
+  .choice-blessing-section { justify-content: flex-start; }
+  .choice-decision-section { justify-content: flex-start; }
+  .choice-part-kicker { margin-bottom: 34px; }
   .choice-heading h1 { font-size: clamp(27px, 8vw, 36px); }
   .choice-heading h2 { font-size: 18px; }
   .choice-system { min-height: 380px; margin-top: 18px; gap: 10px; }
