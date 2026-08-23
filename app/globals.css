@@ -76,7 +76,7 @@ button:focus-visible {
 
 .scene-calm .star-canvas { opacity: 0.08; }
 
-.calm-scene {
+.scene.calm-scene {
   display: block;
   width: 100%;
   padding: 0;

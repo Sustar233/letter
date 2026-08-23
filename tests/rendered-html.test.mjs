@@ -70,6 +70,7 @@ test("ships responsive, keyboard-friendly and without starter UI", async () => {
   assert.match(page, /pointerType/);
   assert.match(css, /prefers-reduced-motion/);
   assert.match(css, /@media \(max-width: 768px\)/);
+  assert.match(css, /\.scene\.calm-scene\s*\{[^}]*width:\s*100%/s);
   assert.match(layout, /index:\s*false/);
   assert.match(layout, /og\.png/);
   assert.doesNotMatch(layout, /next\/font|codex-preview/);
