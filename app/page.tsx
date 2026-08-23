@@ -2,6 +2,7 @@
 
 import {
   type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
   useCallback,
   useEffect,
   useRef,
@@ -588,6 +589,7 @@ function ChoiceScene({
 }) {
   const blessing = letterContent.blessing;
   const content = letterContent.choice;
+  const partTransitionLock = useRef(false);
   const [part, setPart] = useState<0 | 1>(entryPart);
   const [partTransitioning, setPartTransitioning] = useState(false);
   const [activeBlessing, setActiveBlessing] = useState(0);
@@ -613,15 +615,25 @@ function ChoiceScene({
   };
 
   const switchPart = (nextPart: 0 | 1) => {
-    if (partTransitioning || part === nextPart) return;
+    if (partTransitionLock.current || partTransitioning || part === nextPart) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    partTransitionLock.current = true;
     setPartTransitioning(true);
     window.setTimeout(() => {
       setPart(nextPart);
       setSelected(null);
       window.scrollTo({ top: 0, behavior: "instant" });
     }, reduced ? 20 : 620);
-    window.setTimeout(() => setPartTransitioning(false), reduced ? 40 : 1120);
+    window.setTimeout(() => {
+      partTransitionLock.current = false;
+      setPartTransitioning(false);
+    }, reduced ? 40 : 1120);
+  };
+
+  const handleWheel = (event: ReactWheelEvent<HTMLElement>) => {
+    if (Math.abs(event.deltaY) < 18 || partTransitionLock.current) return;
+    if (event.deltaY > 0 && part === 0) switchPart(1);
+    else if (event.deltaY < 0 && part === 1) switchPart(0);
   };
 
   const blessingComplete = visitedBlessings.size === blessing.items.length;
@@ -636,7 +648,7 @@ function ChoiceScene({
   };
 
   return (
-    <section className={`scene choice-scene choice-part-${part} ${partTransitioning ? "is-part-transitioning" : ""} ${selected ? `has-choice choice-${selected}` : ""}`} aria-label="祝愿与抉择">
+    <section className={`scene choice-scene choice-part-${part} ${partTransitioning ? "is-part-transitioning" : ""} ${selected ? `has-choice choice-${selected}` : ""}`} aria-label="祝愿与抉择" onWheel={handleWheel}>
       <div className="choice-page-transition" aria-hidden="true"><i /><b /></div>
       {part === 0 ? (
       <section className="choice-section choice-blessing-section" data-part="0" aria-labelledby="blessing-title" key="blessing">
@@ -677,6 +689,7 @@ function ChoiceScene({
             </StoryAction>
           </div>
         </div>
+        <span className="choice-wheel-cue choice-wheel-cue-down" aria-hidden="true"><i />向下滚动 · 进入抉择</span>
       </section>
       ) : (
       <section className="choice-section choice-decision-section" data-part="1" aria-labelledby="choice-title" key="choice">
@@ -716,6 +729,7 @@ function ChoiceScene({
           </button>
         )}
         <button className="story-back choice-back" type="button" onClick={() => switchPart(0)}>回到祝愿</button>
+        <span className="choice-wheel-cue choice-wheel-cue-up" aria-hidden="true"><i />向上滚动 · 回到祝愿</span>
       </section>
       )}
     </section>

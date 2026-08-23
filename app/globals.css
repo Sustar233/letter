@@ -1591,6 +1591,49 @@ button:focus-visible {
 .choice-scene.is-part-transitioning .choice-page-transition b { animation: choicePageStarB 1.1s var(--ease-story) both; }
 .choice-scene.is-part-transitioning .choice-section { opacity: 0.08; transition: opacity 550ms var(--ease-story); }
 
+.choice-wheel-cue {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  transform: translateX(-50%);
+  color: rgba(220, 228, 255, 0.24);
+  font-size: 7px;
+  letter-spacing: 0.17em;
+  white-space: nowrap;
+}
+
+.choice-wheel-cue i {
+  position: relative;
+  display: block;
+  width: 12px;
+  height: 18px;
+  border: 1px solid rgba(220, 228, 255, 0.18);
+  border-radius: 8px;
+}
+
+.choice-wheel-cue i::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  width: 2px;
+  height: 4px;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: rgba(230, 235, 255, 0.5);
+  animation: choiceWheelDown 1.8s ease-in-out infinite;
+}
+
+.choice-wheel-cue-up i { transform: rotate(180deg); }
+
+@keyframes choiceWheelDown {
+  0%, 100% { opacity: 0.25; transform: translate(-50%, 0); }
+  48% { opacity: 0.85; transform: translate(-50%, 5px); }
+}
+
 @keyframes choicePartEnter {
   from { opacity: 0; transform: translateY(9px); }
   to { opacity: 1; transform: translateY(0); }
@@ -1614,6 +1657,10 @@ button:focus-visible {
   28% { opacity: 1; }
   52% { right: calc(50% - 4px); }
   72%, 100% { right: 42%; opacity: 0; }
+}
+
+@media (pointer: coarse) {
+  .choice-wheel-cue { display: none; }
 }
 
 .choice-heading > p { margin: 0 0 18px; color: rgba(220, 228, 255, 0.35); font-size: 9px; letter-spacing: 0.27em; }
