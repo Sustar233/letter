@@ -251,7 +251,7 @@ function MemoryStarTrail({ memories }: { memories: typeof letterContent.apology.
   );
 }
 
-function ResonanceStars({ similarities, source }: { similarities: typeof letterContent.apology.similarities; source: string }) {
+function ResonanceStars({ similarities }: { similarities: typeof letterContent.apology.similarities }) {
   const [active, setActive] = useState<number | null>(null);
   const [ref, visible] = useOnceInView<HTMLElement>(0.2);
   const desktopPaths = [
@@ -275,12 +275,11 @@ function ResonanceStars({ similarities, source }: { similarities: typeof letterC
     <section
       className={`resonance ${visible ? "is-visible" : ""} ${active !== null ? "is-resonating" : ""}`}
       aria-labelledby="resonance-title"
-      aria-label={source}
       ref={ref}
     >
       <header className="interaction-heading resonance-heading">
         <span>02 · 关系</span>
-        <h2 id="resonance-title">双星共振</h2>
+        <h2 className="visually-hidden" id="resonance-title">那些意外的相似</h2>
         <p>一些很小的事情，也会让两颗星同时亮一下。</p>
       </header>
       <div
@@ -379,7 +378,7 @@ function ApologyScene({ onNext, onBack }: { onNext: () => void; onBack: () => vo
         <section className="similarity-intro">
           <p>{content.similarityIntro}</p>
         </section>
-        <ResonanceStars similarities={content.similarities} source={content.similaritySource} />
+        <ResonanceStars similarities={content.similarities} />
         <p className="resonance-after">{content.afterSimilarity}</p>
 
         <section className="envy-turn">
