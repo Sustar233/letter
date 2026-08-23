@@ -254,6 +254,7 @@ function MemoryStarTrail({ memories }: { memories: typeof letterContent.apology.
 function ResonanceStars({ similarities }: { similarities: typeof letterContent.apology.similarities }) {
   const [active, setActive] = useState<number | null>(null);
   const [ref, visible] = useOnceInView<HTMLElement>(0.2);
+  const activeItem = active === null ? null : similarities[active];
   const desktopPaths = [
     "M 88 210 C 205 42, 420 42, 912 210",
     "M 88 210 C 244 85, 598 18, 912 210",
@@ -280,7 +281,7 @@ function ResonanceStars({ similarities }: { similarities: typeof letterContent.a
       <header className="interaction-heading resonance-heading">
         <span>02 · 关系</span>
         <h2 className="visually-hidden" id="resonance-title">那些意外的相似</h2>
-        <p>一些很小的事情，也会让两颗星同时亮一下。</p>
+        <p>一些很小的事情，也会让两颗星同时亮一下。轻触一处，看一小格演绎。</p>
       </header>
       <div
         className="resonance-sky"
@@ -297,11 +298,22 @@ function ResonanceStars({ similarities }: { similarities: typeof letterContent.a
         <svg className="resonance-paths resonance-paths-mobile" viewBox="0 0 360 460" preserveAspectRatio="none" aria-hidden="true">
           {mobilePaths.map((path, index) => <path className={active === index ? "is-active" : ""} d={path} pathLength="1" key={similarities[index].id} />)}
         </svg>
+        <figure
+          className={`resonance-comic ${activeItem ? "is-active" : ""}`}
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {activeItem && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={activeItem.image} alt={activeItem.alt} key={activeItem.id} />
+          )}
+        </figure>
         <div className="similarity-list">
           {similarities.map((item, index) => (
             <button
               className={active === index ? "is-active" : ""}
               type="button"
+              aria-pressed={active === index}
               onMouseEnter={() => setActive(index)}
               onFocus={() => setActive(index)}
               onClick={(event) => {

@@ -86,12 +86,42 @@ export const letterContent = {
     similarityIntro: "一部分特别来自那些意外的相似。",
     similaritySource: "【随缘吃饭，喜欢一个人宅着、一个人随缘远行，讨厌烟味、不用抖音，喜欢独自一人的深夜...】",
     similarities: [
-      { id: "food", label: "随缘吃饭" },
-      { id: "home", label: "喜欢一个人宅着" },
-      { id: "travel", label: "一个人随缘远行" },
-      { id: "smoke", label: "讨厌烟味" },
-      { id: "douyin", label: "不用抖音" },
-      { id: "night", label: "喜欢独自一人的深夜..." },
+      {
+        id: "food",
+        label: "随缘吃饭",
+        image: "/images/resonance/food.png",
+        alt: "两个火柴人在深夜随手拿起零食，随缘解决一顿饭",
+      },
+      {
+        id: "home",
+        label: "喜欢一个人宅着",
+        image: "/images/resonance/home.png",
+        alt: "两个火柴人各自在安静的角落读书和听音乐",
+      },
+      {
+        id: "travel",
+        label: "一个人随缘远行",
+        image: "/images/resonance/travel.png",
+        alt: "两个火柴人背着小包，独自在不同的星空小路上远行",
+      },
+      {
+        id: "smoke",
+        label: "讨厌烟味",
+        image: "/images/resonance/smoke.png",
+        alt: "两个火柴人一起挥手躲开令人不适的烟雾",
+      },
+      {
+        id: "douyin",
+        label: "不用抖音",
+        image: "/images/resonance/offline.png",
+        alt: "两个火柴人把手机放在一旁，安静读书和看星星",
+      },
+      {
+        id: "night",
+        label: "喜欢独自一人的深夜...",
+        image: "/images/resonance/night.png",
+        alt: "两个火柴人在各自的夜晚空间里独处，一个读书，一个望月",
+      },
     ],
     afterSimilarity: "很多其实很小的事情，但知道时，会有种“原来你也是这样”的开心。",
     envyTurn: [

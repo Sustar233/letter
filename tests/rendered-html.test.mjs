@@ -48,6 +48,8 @@ test("keeps editable copy, media slots and both endings in one content file", as
   assert.match(config, /priority: "fragment"/);
   assert.match(config, /写于 8\.8 下午/);
   assert.match(config, /src: ""/);
+  assert.match(config, /image: "\/images\/resonance\/food\.png"/);
+  assert.match(config, /image: "\/images\/resonance\/night\.png"/);
   assert.doesNotMatch(config, /https?:\/\//);
 });
 
@@ -62,6 +64,8 @@ test("ships responsive, keyboard-friendly and without starter UI", async () => {
   assert.match(page, /localStorage/);
   assert.match(page, /function MemoryStarTrail/);
   assert.match(page, /function ResonanceStars/);
+  assert.match(page, /className={`resonance-comic/);
+  assert.match(page, /aria-pressed=/);
   assert.match(page, /function PhotoStoryGroup/);
   assert.match(page, /function AfternoonPause/);
   assert.match(page, /function NightReturn/);
@@ -82,6 +86,9 @@ test("ships responsive, keyboard-friendly and without starter UI", async () => {
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview/", import.meta.url)));
   await access(new URL("../public/og.png", import.meta.url));
+  for (const image of ["food", "home", "travel", "smoke", "offline", "night"]) {
+    await access(new URL(`../public/images/resonance/${image}.png`, import.meta.url));
+  }
   await access(new URL("../本地阅读说明.txt", import.meta.url));
   await access(new URL("../dist/server/index.js", import.meta.url));
   await access(root);

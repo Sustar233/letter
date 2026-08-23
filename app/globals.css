@@ -795,7 +795,42 @@ button:focus-visible {
 .resonance.is-visible .resonance-paths path:nth-child(5) { animation-delay: 680ms; }
 .resonance.is-visible .resonance-paths path:nth-child(6) { animation-delay: 810ms; }
 .resonance-paths path.is-active { stroke: rgba(197, 207, 255, 0.48); filter: drop-shadow(0 0 5px rgba(159, 174, 255, 0.42)); opacity: 1; }
+.resonance.is-resonating .resonance-paths path:not(.is-active) { opacity: 0.025; }
 .resonance-paths-mobile { display: none; }
+
+.resonance-comic {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 52%;
+  display: grid;
+  width: min(34%, 310px);
+  aspect-ratio: 3 / 2;
+  margin: 0;
+  place-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -47%) scale(0.94);
+  transition: opacity 500ms var(--ease-story), transform 700ms var(--ease-story);
+}
+
+.resonance-comic.is-active { opacity: 0.96; transform: translate(-50%, -50%) scale(1); }
+
+.resonance-comic img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 18px rgba(130, 151, 231, 0.13));
+  mix-blend-mode: screen;
+  mask-image: radial-gradient(ellipse at center, #000 58%, rgba(0, 0, 0, 0.86) 72%, transparent 100%);
+  animation: resonanceComicReveal 680ms var(--ease-story) both;
+}
+
+@keyframes resonanceComicReveal {
+  from { opacity: 0; transform: translateY(7px) scale(0.97); filter: blur(3px) drop-shadow(0 0 4px rgba(130, 151, 231, 0)); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0) drop-shadow(0 0 18px rgba(130, 151, 231, 0.13)); }
+}
 
 .similarity-list {
   position: absolute;
@@ -821,7 +856,7 @@ button:focus-visible {
 }
 
 .resonance:not(.is-visible) .similarity-list button { opacity: 0; transform: translateY(7px); }
-.similarity-list button:focus-visible { outline: 0; }
+.similarity-list button:focus-visible { outline: 1px solid rgba(186, 196, 255, 0.38); outline-offset: 2px; border-radius: 999px; }
 
 .similarity-list button:nth-child(1) { left: 27%; top: 7%; }
 .similarity-list button:nth-child(2) { left: 52%; top: 11%; }
@@ -841,7 +876,7 @@ button:focus-visible {
 .similarity-list button:hover,
 .similarity-list button:focus-visible,
 .similarity-list button.is-active { color: rgba(245, 247, 255, 0.88); text-shadow: 0 0 14px rgba(171, 184, 245, 0.3); transform: translateY(-4px); }
-.resonance.is-resonating .similarity-list button:not(.is-active) { opacity: 0.17; }
+.resonance.is-resonating .similarity-list button:not(.is-active) { opacity: 0.1; }
 
 .resonance-after { margin-top: 0; color: rgba(235, 239, 255, 0.72); }
 
@@ -2001,6 +2036,8 @@ button:focus-visible {
   .resonance-star > span { top: 74px; }
   .resonance-paths-desktop { display: none; }
   .resonance-paths-mobile { display: block; }
+  .resonance-comic { top: 52%; width: min(72vw, 270px); }
+  .resonance.is-resonating .similarity-list button.is-active { left: 50%; top: 0; transform: translateX(-50%); }
   .similarity-list button { min-height: 45px; padding: 6px 9px; font-size: 13px; }
   .similarity-list button:nth-child(1) { left: 15%; top: 14%; }
   .similarity-list button:nth-child(2) { left: 43%; top: 24%; }
