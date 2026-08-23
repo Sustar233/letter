@@ -84,13 +84,13 @@ export const letterContent = {
       "只是吧，可能对那时候我的世界来说，一切就是刚刚好而已",
     ],
     similarityIntro: "一部分特别来自那些意外的相似。",
-    similaritySource: "【随缘吃饭，喜欢一个人宅着、一个人随缘远行，讨厌烟味、不用抖音，喜欢独自一人的深夜...】",
+    similaritySource: "【随缘吃饭，喜欢一个人宅着、一个人随缘远行，讨厌二手烟、讨厌抖音，喜欢独自一人的深夜...】",
     similarities: [
       {
         id: "food",
         label: "随缘吃饭",
         image: "/images/resonance/food.png",
-        alt: "两个火柴人在深夜随手拿起零食，随缘解决一顿饭",
+        alt: "两个火柴人处在不同房间，各自错过饭点，饭菜仍未打开",
       },
       {
         id: "home",
@@ -106,15 +106,15 @@ export const letterContent = {
       },
       {
         id: "smoke",
-        label: "讨厌烟味",
+        label: "讨厌二手烟",
         image: "/images/resonance/smoke.png",
-        alt: "两个火柴人一起挥手躲开令人不适的烟雾",
+        alt: "两个火柴人在不同地点，各自躲开从画外飘来的香烟烟雾",
       },
       {
         id: "douyin",
-        label: "不用抖音",
+        label: "讨厌抖音",
         image: "/images/resonance/offline.png",
-        alt: "两个火柴人把手机放在一旁，安静读书和看星星",
+        alt: "两个火柴人在不同房间各自推开手机，中央写着 NO 并有禁用的短视频图标",
       },
       {
         id: "night",
