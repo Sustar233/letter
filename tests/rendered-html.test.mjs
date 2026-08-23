@@ -74,6 +74,8 @@ test("ships responsive, keyboard-friendly and without starter UI", async () => {
   assert.match(page, /第二部分 · 抉择/);
   assert.match(page, /data-part="0"/);
   assert.match(page, /data-part="1"/);
+  assert.match(page, /choice-page-transition/);
+  assert.doesNotMatch(page, /scrollIntoView/);
   assert.match(page, /role="tab"/);
   assert.match(page, /type="button"/);
   assert.match(page, /pointerType/);

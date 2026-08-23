@@ -588,9 +588,8 @@ function ChoiceScene({
 }) {
   const blessing = letterContent.blessing;
   const content = letterContent.choice;
-  const blessingRef = useRef<HTMLElement>(null);
-  const choiceRef = useRef<HTMLElement>(null);
-  const initialPart = useRef(entryPart);
+  const [part, setPart] = useState<0 | 1>(entryPart);
+  const [partTransitioning, setPartTransitioning] = useState(false);
   const [activeBlessing, setActiveBlessing] = useState(0);
   const [visitedBlessings, setVisitedBlessings] = useState(() => new Set([0]));
   const [selected, setSelected] = useState<EndingKey | null>(null);
@@ -605,34 +604,24 @@ function ChoiceScene({
   );
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      const target = initialPart.current === 1 ? choiceRef.current : blessingRef.current;
-      target?.scrollIntoView({ block: "start", behavior: "instant" });
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
-
-  useEffect(() => {
-    const sections = [blessingRef.current, choiceRef.current].filter((section): section is HTMLElement => Boolean(section));
-    const observer = new IntersectionObserver((entries) => {
-      const visible = entries
-        .filter((entry) => entry.isIntersecting)
-        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-      if (visible) onPartChange(Number((visible.target as HTMLElement).dataset.part) as 0 | 1);
-    }, { rootMargin: "-32% 0px -32% 0px", threshold: [0, 0.2, 0.5] });
-    sections.forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
-  }, [onPartChange]);
+    onPartChange(part);
+  }, [onPartChange, part]);
 
   const selectBlessing = (index: number) => {
     setActiveBlessing(index);
     setVisitedBlessings((current) => new Set(current).add(index));
   };
 
-  const scrollToPart = (part: 0 | 1) => {
+  const switchPart = (nextPart: 0 | 1) => {
+    if (partTransitioning || part === nextPart) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const target = part === 0 ? blessingRef.current : choiceRef.current;
-    target?.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+    setPartTransitioning(true);
+    window.setTimeout(() => {
+      setPart(nextPart);
+      setSelected(null);
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }, reduced ? 20 : 620);
+    window.setTimeout(() => setPartTransitioning(false), reduced ? 40 : 1120);
   };
 
   const blessingComplete = visitedBlessings.size === blessing.items.length;
@@ -647,8 +636,10 @@ function ChoiceScene({
   };
 
   return (
-    <section className={`scene choice-scene ${selected ? `has-choice choice-${selected}` : ""}`} aria-label="祝愿与抉择">
-      <section className="choice-section choice-blessing-section" data-part="0" ref={blessingRef} aria-labelledby="blessing-title">
+    <section className={`scene choice-scene choice-part-${part} ${partTransitioning ? "is-part-transitioning" : ""} ${selected ? `has-choice choice-${selected}` : ""}`} aria-label="祝愿与抉择">
+      <div className="choice-page-transition" aria-hidden="true"><i /><b /></div>
+      {part === 0 ? (
+      <section className="choice-section choice-blessing-section" data-part="0" aria-labelledby="blessing-title" key="blessing">
         <p className="choice-part-kicker">第一部分 · 祝愿</p>
         <div className="blessing-layout">
           <div className="reading-copy">
@@ -681,15 +672,14 @@ function ChoiceScene({
           <button className="story-back" type="button" onClick={onBack}>回到世界之窗</button>
           <div className="blessing-next">
             {!blessingComplete && <small>再读完 {blessing.items.length - visitedBlessings.size} 颗星</small>}
-            <StoryAction onClick={blessingComplete ? () => scrollToPart(1) : () => selectBlessing((activeBlessing + 1) % blessing.items.length)}>
+            <StoryAction onClick={blessingComplete ? () => switchPart(1) : () => selectBlessing((activeBlessing + 1) % blessing.items.length)}>
               {blessingComplete ? blessing.action : "读下一颗星"}
             </StoryAction>
           </div>
         </div>
-        <span className="choice-section-link" aria-hidden="true">继续向下 · 抉择</span>
       </section>
-
-      <section className="choice-section choice-decision-section" data-part="1" ref={choiceRef} aria-labelledby="choice-title">
+      ) : (
+      <section className="choice-section choice-decision-section" data-part="1" aria-labelledby="choice-title" key="choice">
         <p className="choice-part-kicker">第二部分 · 抉择</p>
         <header className="choice-heading">
           <p>{content.time}</p>
@@ -725,8 +715,9 @@ function ChoiceScene({
             选择这颗星
           </button>
         )}
-        <button className="story-back choice-back" type="button" onClick={() => scrollToPart(0)}>回到祝愿</button>
+        <button className="story-back choice-back" type="button" onClick={() => switchPart(0)}>回到祝愿</button>
       </section>
+      )}
     </section>
   );
 }

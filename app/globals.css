@@ -1522,9 +1522,11 @@ button:focus-visible {
 
 /* Choice */
 .choice-scene {
+  position: relative;
   width: 100%;
-  min-height: 200svh;
+  min-height: 100svh;
   padding: 0;
+  overflow-x: hidden;
 }
 
 .choice-section {
@@ -1536,11 +1538,7 @@ button:focus-visible {
   padding: max(84px, 10vh) 34px max(58px, 7vh);
   flex-direction: column;
   justify-content: center;
-  scroll-margin-top: 0;
-}
-
-.choice-blessing-section {
-  border-bottom: 1px solid rgba(186, 196, 255, 0.08);
+  animation: choicePartEnter 850ms var(--ease-story) both;
 }
 
 .choice-decision-section {
@@ -1557,15 +1555,65 @@ button:focus-visible {
 
 .choice-decision-section > .choice-part-kicker { margin-bottom: 26px; }
 
-.choice-section-link {
+.choice-page-transition {
+  position: fixed;
+  z-index: 18;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.choice-page-transition::before {
+  content: "";
   position: absolute;
-  left: 50%;
-  bottom: 23px;
-  transform: translateX(-50%);
-  color: rgba(220, 228, 255, 0.18);
-  font-size: 7px;
-  letter-spacing: 0.18em;
-  white-space: nowrap;
+  inset: 0;
+  background: #05070d;
+  opacity: 0;
+}
+
+.choice-page-transition i,
+.choice-page-transition b {
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #edf1ff;
+  box-shadow: 0 0 18px rgba(186, 196, 255, 0.88);
+  opacity: 0;
+}
+
+.choice-page-transition i { left: 38%; }
+.choice-page-transition b { right: 38%; }
+.choice-scene.is-part-transitioning .choice-page-transition { visibility: visible; }
+.choice-scene.is-part-transitioning .choice-page-transition::before { animation: choicePageVeil 1.1s var(--ease-story) both; }
+.choice-scene.is-part-transitioning .choice-page-transition i { animation: choicePageStarA 1.1s var(--ease-story) both; }
+.choice-scene.is-part-transitioning .choice-page-transition b { animation: choicePageStarB 1.1s var(--ease-story) both; }
+.choice-scene.is-part-transitioning .choice-section { opacity: 0.08; transition: opacity 550ms var(--ease-story); }
+
+@keyframes choicePartEnter {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes choicePageVeil {
+  0% { opacity: 0; }
+  45%, 58% { opacity: 0.98; }
+  100% { opacity: 0; }
+}
+
+@keyframes choicePageStarA {
+  0% { opacity: 0; }
+  28% { opacity: 1; }
+  52% { left: calc(50% - 4px); }
+  72%, 100% { left: 42%; opacity: 0; }
+}
+
+@keyframes choicePageStarB {
+  0% { opacity: 0; }
+  28% { opacity: 1; }
+  52% { right: calc(50% - 4px); }
+  72%, 100% { right: 42%; opacity: 0; }
 }
 
 .choice-heading > p { margin: 0 0 18px; color: rgba(220, 228, 255, 0.35); font-size: 9px; letter-spacing: 0.27em; }
