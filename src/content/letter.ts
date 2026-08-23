@@ -108,13 +108,13 @@ export const letterContent = {
         id: "smoke",
         label: "讨厌二手烟",
         image: "/images/resonance/smoke.png",
-        alt: "两个火柴人在不同地点，各自躲开从画外飘来的香烟烟雾",
+        alt: "两个火柴人在不同地点捂住鼻子，快速跑离画外飘来的香烟烟雾",
       },
       {
         id: "douyin",
         label: "讨厌抖音",
         image: "/images/resonance/offline.png",
-        alt: "两个火柴人在不同房间各自推开手机，中央写着 NO 并有禁用的短视频图标",
+        alt: "两个火柴人处在不同房间，中央是嵌套禁止标识的抖音图标",
       },
       {
         id: "night",
