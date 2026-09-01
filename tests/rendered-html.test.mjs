@@ -48,25 +48,26 @@ test("keeps editable copy, media slots and both endings in one content file", as
   assert.match(config, /priority: "fragment"/);
   assert.match(config, /写于 8\.8 下午/);
   assert.match(config, /src: ""/);
-  assert.match(config, /image: "\/images\/resonance\/food\.png"/);
-  assert.match(config, /image: "\/images\/resonance\/night\.png"/);
+  assert.match(config, /image: "\/images\/resonance\/food\.webp"/);
+  assert.match(config, /image: "\/images\/resonance\/night\.webp"/);
   assert.doesNotMatch(config, /https?:\/\//);
 });
 
 test("ships responsive, keyboard-friendly and without starter UI", async () => {
-  const [page, layout, css, packageJson] = await Promise.all([
+  const [page, layout, css, packageJson, worker] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /localStorage/);
   assert.match(page, /function MemoryStarTrail/);
   assert.match(page, /function ResonanceStars/);
   assert.match(page, /className={`resonance-comic/);
   assert.match(page, /aria-pressed=/);
   assert.match(page, /function PhotoStoryGroup/);
+  assert.match(page, /photo-constellation/);
   assert.match(page, /function AfternoonPause/);
   assert.match(page, /function NightReturn/);
   assert.doesNotMatch(page, /function BlessingScene/);
@@ -80,19 +81,32 @@ test("ships responsive, keyboard-friendly and without starter UI", async () => {
   assert.match(page, /向上滚动 · 回到祝愿/);
   assert.doesNotMatch(page, /scrollIntoView/);
   assert.match(page, /role="tab"/);
+  assert.match(page, /role="tabpanel"/);
+  assert.match(page, /aria-controls="blessing-panel"/);
+  assert.match(page, /aria-current=/);
+  assert.match(page, /previousFocus/);
+  assert.match(page, /document\.body\.style\.overflow = "hidden"/);
+  assert.match(page, /transitionLock\.current/);
+  assert.match(page, /url\.searchParams\.delete\("scene"\)/);
+  assert.doesNotMatch(page, /new Image\(\)/);
   assert.match(page, /type="button"/);
   assert.match(page, /pointerType/);
+  assert.match(page, /visibilitychange/);
+  assert.match(page, /motionQuery\.addEventListener/);
+  assert.doesNotMatch(page, /localStorage/);
   assert.match(css, /prefers-reduced-motion/);
   assert.match(css, /@media \(max-width: 768px\)/);
   assert.match(css, /\.scene\.calm-scene\s*\{[^}]*width:\s*100%/s);
   assert.match(layout, /index:\s*false/);
   assert.match(layout, /og\.png/);
   assert.doesNotMatch(layout, /next\/font|codex-preview/);
-  assert.doesNotMatch(packageJson, /react-loading-skeleton/);
+  assert.doesNotMatch(packageJson, /react-loading-skeleton|drizzle/);
+  assert.match(packageJson, /"typecheck": "tsc --noEmit"/);
+  assert.doesNotMatch(worker, /ASSETS:\s*Fetcher/);
   await assert.rejects(access(new URL("../app/_sites-preview/", import.meta.url)));
   await access(new URL("../public/og.png", import.meta.url));
   for (const image of ["food", "home", "travel", "smoke", "offline", "night"]) {
-    await access(new URL(`../public/images/resonance/${image}.png`, import.meta.url));
+    await access(new URL(`../public/images/resonance/${image}.webp`, import.meta.url));
   }
   await access(new URL("../本地阅读说明.txt", import.meta.url));
   await access(new URL("../dist/server/index.js", import.meta.url));

@@ -1043,9 +1043,7 @@ button:focus-visible {
 .photo-story-group.phase-golden { background: linear-gradient(180deg, #f2ede4, #e8d8c7); }
 
 .photo-group-heading,
-.hero-photo-wrap,
-.photo-pair-grid,
-.photo-filmstrip {
+.photo-constellation {
   position: relative;
   z-index: 1;
   width: min(1080px, 100%);
@@ -1180,39 +1178,122 @@ button:focus-visible {
   letter-spacing: 0.04em;
 }
 
-.hero-photo-wrap { margin-bottom: clamp(38px, 6vh, 68px); }
-.hero-photo-wrap .travel-photo { --photo-angle: -0.35deg; }
-.hero-photo-wrap .travel-photo figcaption { padding-top: 17px; }
-
-.photo-pair-grid {
-  display: grid;
-  margin-bottom: clamp(30px, 5vh, 58px);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(25px, 4vw, 52px);
+.photo-constellation {
+  height: clamp(760px, 72vw, 960px);
+  margin-top: clamp(-12px, -1vw, 0px);
 }
 
-.photo-pair-grid .travel-photo:nth-child(odd) { --photo-angle: -0.45deg; transition-delay: 90ms; }
-.photo-pair-grid .travel-photo:nth-child(even) { --photo-angle: 0.4deg; transition-delay: 180ms; }
+.photo-constellation.photo-count-3 { height: clamp(650px, 58vw, 790px); }
+.photo-constellation.photo-count-5 { height: clamp(880px, 78vw, 1040px); }
 
-.photo-filmstrip {
-  display: flex;
-  padding: 21px 0 8px;
-  gap: 20px;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(62, 82, 94, 0.22) transparent;
-  scroll-snap-type: x proximity;
+.photo-constellation::before,
+.photo-constellation::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(63, 83, 96, 0.34);
+  box-shadow: 0 0 11px rgba(83, 106, 121, 0.22);
+  pointer-events: none;
 }
 
-.photo-filmstrip .travel-photo {
-  width: min(260px, 26vw);
-  flex: 0 0 auto;
-  scroll-snap-align: start;
-  transition-delay: 240ms;
+.photo-constellation::before { right: 18%; bottom: 15%; }
+.photo-constellation::after { left: 4%; bottom: 31%; opacity: 0.46; }
+
+.photo-constellation .travel-photo {
+  position: absolute;
+  z-index: 1;
 }
 
-.photo-filmstrip .travel-photo-media { aspect-ratio: 3 / 2; }
+.photo-constellation .travel-photo:hover,
+.photo-constellation .travel-photo:focus-within { z-index: 3; }
+.photo-constellation .travel-photo:nth-child(2) { transition-delay: 100ms; }
+.photo-constellation .travel-photo:nth-child(3) { transition-delay: 180ms; }
+.photo-constellation .travel-photo:nth-child(4) { transition-delay: 260ms; }
+.photo-constellation .travel-photo:nth-child(5) { transition-delay: 340ms; }
+
+.photo-constellation.has-hero > .photo-hero {
+  --photo-angle: -1.15deg;
+  left: 2%;
+  top: 2%;
+  width: 62%;
+}
+
+.photo-constellation.has-hero > .photo-hero figcaption { padding-top: 17px; }
+
+.photo-constellation.has-hero > .photo-normal:nth-child(2) {
+  --photo-angle: 1.9deg;
+  right: 1%;
+  top: 8%;
+  width: 30%;
+}
+
+.photo-constellation.has-hero > .photo-normal:nth-child(3) {
+  --photo-angle: -1.35deg;
+  right: 5%;
+  top: 43%;
+  width: 37%;
+}
+
+.photo-constellation.has-hero > .photo-normal:nth-child(4) {
+  --photo-angle: 1.6deg;
+  left: 5%;
+  top: 59%;
+  width: 32%;
+}
+
+.photo-constellation.has-hero > .photo-fragment:nth-child(3) {
+  --photo-angle: 2.1deg;
+  left: 51%;
+  top: 63%;
+  width: 25%;
+}
+
+.photo-constellation.has-hero > .photo-fragment:nth-child(4) {
+  --photo-angle: 2.25deg;
+  left: 28%;
+  top: 70%;
+  width: 25%;
+}
+
+.photo-constellation.has-hero > .photo-fragment:nth-child(5) {
+  --photo-angle: -2deg;
+  left: 47%;
+  top: 76%;
+  width: 24%;
+}
+
+.photo-constellation.no-hero > .travel-photo:nth-child(1) {
+  --photo-angle: -1.15deg;
+  left: 4%;
+  top: 2%;
+  width: 56%;
+}
+
+.photo-constellation.no-hero > .travel-photo:nth-child(2) {
+  --photo-angle: 1.75deg;
+  right: 5%;
+  top: 15%;
+  width: 37%;
+}
+
+.photo-constellation.no-hero > .travel-photo:nth-child(3) {
+  --photo-angle: 2deg;
+  left: 13%;
+  top: 61%;
+  width: 27%;
+}
+
+.photo-constellation.no-hero > .travel-photo:nth-child(4) {
+  --photo-angle: -1.8deg;
+  right: 16%;
+  top: 70%;
+  width: 32%;
+}
+
+.photo-constellation .photo-fragment .travel-photo-media { aspect-ratio: 3 / 2; }
 
 .afternoon-pause {
   position: relative;
@@ -2169,27 +2250,55 @@ button:focus-visible {
   .photo-group-heading { margin-bottom: 40px; grid-template-columns: 1fr; gap: 11px; }
   .photo-group-heading h3 { font-size: clamp(27px, 8.2vw, 35px); line-height: 1.45; }
   .photo-group-heading p { margin-top: 7px; font-size: 14px; line-height: 1.8; }
-  .photo-hero .travel-photo-media { aspect-ratio: 4 / 5; }
-  .hero-photo-wrap { margin-bottom: 37px; }
   .travel-photo figcaption { min-height: 56px; padding-top: 13px; }
   .travel-photo figcaption p { font-size: 14px; }
   .travel-photo button:hover { transform: none; }
 
-  .photo-pair-grid {
+  .photo-constellation,
+  .photo-constellation.photo-count-3,
+  .photo-constellation.photo-count-5 {
     display: flex;
-    width: calc(100% + 24px);
-    margin-right: -24px;
-    margin-bottom: 36px;
-    padding-right: 24px;
-    padding-bottom: 12px;
-    gap: 17px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
+    width: 100%;
+    height: auto;
+    margin-top: 0;
+    flex-direction: column;
+    gap: 34px;
   }
 
-  .photo-pair-grid .travel-photo { width: min(78vw, 340px); flex: 0 0 auto; scroll-snap-align: start; }
-  .photo-filmstrip { width: calc(100% + 24px); margin-right: -24px; padding-right: 24px; gap: 14px; scroll-snap-type: x mandatory; }
-  .photo-filmstrip .travel-photo { width: min(61vw, 270px); scroll-snap-align: start; }
+  .photo-constellation::before { right: 7%; bottom: 18%; }
+  .photo-constellation::after { left: 4%; bottom: 42%; }
+  .photo-constellation .travel-photo,
+  .photo-constellation.has-hero > .photo-hero,
+  .photo-constellation.has-hero > .photo-normal:nth-child(2),
+  .photo-constellation.has-hero > .photo-normal:nth-child(3),
+  .photo-constellation.has-hero > .photo-normal:nth-child(4),
+  .photo-constellation.has-hero > .photo-fragment:nth-child(3),
+  .photo-constellation.has-hero > .photo-fragment:nth-child(4),
+  .photo-constellation.has-hero > .photo-fragment:nth-child(5),
+  .photo-constellation.no-hero > .travel-photo:nth-child(1),
+  .photo-constellation.no-hero > .travel-photo:nth-child(2),
+  .photo-constellation.no-hero > .travel-photo:nth-child(3),
+  .photo-constellation.no-hero > .travel-photo:nth-child(4) {
+    position: relative;
+    inset: auto;
+  }
+
+  .photo-constellation.has-hero > .photo-hero { width: 100%; align-self: stretch; }
+  .photo-constellation .photo-hero .travel-photo-media { aspect-ratio: 4 / 5; }
+  .photo-constellation.has-hero > .photo-normal:nth-child(2),
+  .photo-constellation.has-hero > .photo-normal:nth-child(3),
+  .photo-constellation.has-hero > .photo-normal:nth-child(4),
+  .photo-constellation.no-hero > .travel-photo:nth-child(1),
+  .photo-constellation.no-hero > .travel-photo:nth-child(2) { width: 86%; }
+  .photo-constellation .photo-normal:nth-child(even) { align-self: flex-end; }
+  .photo-constellation .photo-normal:nth-child(odd) { align-self: flex-start; }
+  .photo-constellation.has-hero > .photo-fragment:nth-child(3),
+  .photo-constellation.has-hero > .photo-fragment:nth-child(4),
+  .photo-constellation.has-hero > .photo-fragment:nth-child(5),
+  .photo-constellation.no-hero > .travel-photo:nth-child(3),
+  .photo-constellation.no-hero > .travel-photo:nth-child(4) { width: 70%; }
+  .photo-constellation .photo-fragment:nth-child(even) { align-self: flex-end; }
+  .photo-constellation .photo-fragment:nth-child(odd) { align-self: flex-start; }
   .travel-photo-placeholder::after { inset: 9px; }
 
   .afternoon-pause { min-height: 88svh; padding: 110px 24px 90px; }
@@ -2258,8 +2367,16 @@ button:focus-visible {
   .intro-scene > h1 { font-size: 39px; }
   .calm-opening { padding-right: 20px; padding-left: 20px; }
   .photo-story-group { padding-right: 20px; padding-left: 20px; }
-  .photo-pair-grid,
-  .photo-filmstrip { width: calc(100% + 20px); margin-right: -20px; padding-right: 20px; }
+  .photo-constellation.has-hero > .photo-normal:nth-child(2),
+  .photo-constellation.has-hero > .photo-normal:nth-child(3),
+  .photo-constellation.has-hero > .photo-normal:nth-child(4),
+  .photo-constellation.no-hero > .travel-photo:nth-child(1),
+  .photo-constellation.no-hero > .travel-photo:nth-child(2) { width: 88%; }
+  .photo-constellation.has-hero > .photo-fragment:nth-child(3),
+  .photo-constellation.has-hero > .photo-fragment:nth-child(4),
+  .photo-constellation.has-hero > .photo-fragment:nth-child(5),
+  .photo-constellation.no-hero > .travel-photo:nth-child(3),
+  .photo-constellation.no-hero > .travel-photo:nth-child(4) { width: 74%; }
   .blessing-stars > button { width: 82px; min-height: 82px; }
   .choice-star { width: 104px; height: 104px; }
   .choice-copy strong { font-size: 15px; }

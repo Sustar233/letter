@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
   useCallback,
@@ -29,6 +30,34 @@ type CanvasStar = {
   warm: boolean;
 };
 
+const RESONANCE_PATHS = {
+  desktop: [
+    "M 88 210 C 205 42, 420 42, 912 210",
+    "M 88 210 C 244 85, 598 18, 912 210",
+    "M 88 210 C 275 142, 505 110, 912 210",
+    "M 88 210 C 300 204, 615 248, 912 210",
+    "M 88 210 C 235 310, 540 336, 912 210",
+    "M 88 210 C 250 380, 690 350, 912 210",
+  ],
+  mobile: [
+    "M 42 48 C 70 96, 206 82, 318 412",
+    "M 42 48 C 112 88, 250 130, 318 412",
+    "M 42 48 C 94 154, 202 178, 318 412",
+    "M 42 48 C 142 188, 246 218, 318 412",
+    "M 42 48 C 82 236, 188 292, 318 412",
+    "M 42 48 C 122 270, 260 314, 318 412",
+  ],
+} as const;
+
+const subscribeCoarsePointer = (onChange: () => void) => {
+  const query = window.matchMedia("(pointer: coarse)");
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+
+const getCoarsePointerSnapshot = () => window.matchMedia("(pointer: coarse)").matches;
+const getServerCoarsePointerSnapshot = () => false;
+
 function StarField({ mood }: { mood: SceneKey }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -38,7 +67,8 @@ function StarField({ mood }: { mood: SceneKey }) {
     const context = canvas.getContext("2d");
     if (!context) return;
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let reducedMotion = motionQuery.matches;
     const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
     let width = 0;
     let height = 0;
@@ -95,16 +125,40 @@ function StarField({ mood }: { mood: SceneKey }) {
         );
         context.fill();
       }
-      frame = window.requestAnimationFrame(draw);
+      frame = !reducedMotion && !document.hidden
+        ? window.requestAnimationFrame(draw)
+        : 0;
+    };
+
+    const syncAnimation = () => {
+      window.cancelAnimationFrame(frame);
+      frame = 0;
+      if (document.hidden) return;
+      if (reducedMotion) draw(window.performance.now());
+      else frame = window.requestAnimationFrame(draw);
+    };
+
+    const updateMotionPreference = () => {
+      reducedMotion = motionQuery.matches;
+      syncAnimation();
+    };
+
+    const resizeAndRender = () => {
+      resize();
+      if (reducedMotion) draw(window.performance.now());
     };
 
     resize();
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize", resizeAndRender);
     window.addEventListener("pointermove", move, { passive: true });
-    frame = window.requestAnimationFrame(draw);
+    document.addEventListener("visibilitychange", syncAnimation);
+    motionQuery.addEventListener("change", updateMotionPreference);
+    syncAnimation();
     return () => {
-      window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", resizeAndRender);
       window.removeEventListener("pointermove", move);
+      document.removeEventListener("visibilitychange", syncAnimation);
+      motionQuery.removeEventListener("change", updateMotionPreference);
       window.cancelAnimationFrame(frame);
     };
   }, [mood]);
@@ -117,7 +171,11 @@ function Timeline({ active }: { active: number }) {
     <aside className="timeline" aria-label="故事时间">
       <ol>
         {letterContent.timeline.map((label, index) => (
-          <li className={index === active ? "is-current" : index < active ? "is-past" : ""} key={label}>
+          <li
+            className={index === active ? "is-current" : index < active ? "is-past" : ""}
+            aria-current={index === active ? "step" : undefined}
+            key={label}
+          >
             <i aria-hidden="true" />
             <span>{label}</span>
           </li>
@@ -256,22 +314,6 @@ function ResonanceStars({ similarities }: { similarities: typeof letterContent.a
   const [active, setActive] = useState<number | null>(null);
   const [ref, visible] = useOnceInView<HTMLElement>(0.2);
   const activeItem = active === null ? null : similarities[active];
-  const desktopPaths = [
-    "M 88 210 C 205 42, 420 42, 912 210",
-    "M 88 210 C 244 85, 598 18, 912 210",
-    "M 88 210 C 275 142, 505 110, 912 210",
-    "M 88 210 C 300 204, 615 248, 912 210",
-    "M 88 210 C 235 310, 540 336, 912 210",
-    "M 88 210 C 250 380, 690 350, 912 210",
-  ];
-  const mobilePaths = [
-    "M 42 48 C 70 96, 206 82, 318 412",
-    "M 42 48 C 112 88, 250 130, 318 412",
-    "M 42 48 C 94 154, 202 178, 318 412",
-    "M 42 48 C 142 188, 246 218, 318 412",
-    "M 42 48 C 82 236, 188 292, 318 412",
-    "M 42 48 C 122 270, 260 314, 318 412",
-  ];
 
   return (
     <section
@@ -294,10 +336,10 @@ function ResonanceStars({ similarities }: { similarities: typeof letterContent.a
         <div className="resonance-star resonance-star-me" aria-hidden="true" key={`me-${active ?? "rest"}`}><i /><span>我</span></div>
         <div className="resonance-star resonance-star-you" aria-hidden="true" key={`you-${active ?? "rest"}`}><i /><span>余音</span></div>
         <svg className="resonance-paths resonance-paths-desktop" viewBox="0 0 1000 420" preserveAspectRatio="none" aria-hidden="true">
-          {desktopPaths.map((path, index) => <path className={active === index ? "is-active" : ""} d={path} pathLength="1" key={similarities[index].id} />)}
+          {RESONANCE_PATHS.desktop.map((path, index) => <path className={active === index ? "is-active" : ""} d={path} pathLength="1" key={similarities[index].id} />)}
         </svg>
         <svg className="resonance-paths resonance-paths-mobile" viewBox="0 0 360 460" preserveAspectRatio="none" aria-hidden="true">
-          {mobilePaths.map((path, index) => <path className={active === index ? "is-active" : ""} d={path} pathLength="1" key={similarities[index].id} />)}
+          {RESONANCE_PATHS.mobile.map((path, index) => <path className={active === index ? "is-active" : ""} d={path} pathLength="1" key={similarities[index].id} />)}
         </svg>
         <figure
           className={`resonance-comic ${activeItem ? "is-active" : ""}`}
@@ -338,24 +380,7 @@ function PossibilityBlock({ children }: { children: string }) {
 }
 
 function ApologyEnding({ lead, finalLine }: { lead: readonly string[]; finalLine: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const node = ref.current;
-    if (!node || !("IntersectionObserver" in window)) {
-      setVisible(true);
-      return;
-    }
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setVisible(true);
-        observer.disconnect();
-      }
-    }, { threshold: 0.45 });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
+  const [ref, visible] = useOnceInView<HTMLDivElement>(0.45);
 
   const secondPartIndex = finalLine.indexOf("失礼了");
   const firstPart = secondPartIndex >= 0 ? finalLine.slice(0, secondPartIndex) : finalLine;
@@ -468,6 +493,7 @@ function PhotoStoryGroup({
   const hero = photos.find((photo) => photo.priority === "hero");
   const normal = photos.filter((photo) => photo.priority === "normal");
   const fragments = photos.filter((photo) => photo.priority === "fragment");
+  const arrangedPhotos = hero ? [hero, ...normal, ...fragments] : [...normal, ...fragments];
   const card = (photo: PhotoMemory) => (
     <PhotoCard
       photo={photo}
@@ -484,13 +510,12 @@ function PhotoStoryGroup({
         <h3 id={`photo-group-${group.id}`}>{group.title}</h3>
         <p>{group.note}</p>
       </header>
-      {hero && <div className="hero-photo-wrap">{card(hero)}</div>}
-      {normal.length > 0 && <div className="photo-pair-grid">{normal.map(card)}</div>}
-      {fragments.length > 0 && (
-        <div className="photo-filmstrip" aria-label={`${group.title}的旅行碎片`}>
-          {fragments.map(card)}
-        </div>
-      )}
+      <div
+        className={`photo-constellation ${hero ? "has-hero" : "no-hero"} photo-count-${arrangedPhotos.length}`}
+        aria-label={`${group.title}的零散照片`}
+      >
+        {arrangedPhotos.map(card)}
+      </div>
     </section>
   );
 }
@@ -590,44 +615,60 @@ function ChoiceScene({
   const blessing = letterContent.blessing;
   const content = letterContent.choice;
   const partTransitionLock = useRef(false);
+  const partTransitionTimers = useRef<number[]>([]);
+  const blessingTabs = useRef<Array<HTMLButtonElement | null>>([]);
   const [part, setPart] = useState<0 | 1>(entryPart);
   const [partTransitioning, setPartTransitioning] = useState(false);
   const [activeBlessing, setActiveBlessing] = useState(0);
   const [visitedBlessings, setVisitedBlessings] = useState(() => new Set([0]));
   const [selected, setSelected] = useState<EndingKey | null>(null);
   const coarse = useSyncExternalStore(
-    (onChange) => {
-      const query = window.matchMedia("(pointer: coarse)");
-      query.addEventListener("change", onChange);
-      return () => query.removeEventListener("change", onChange);
-    },
-    () => window.matchMedia("(pointer: coarse)").matches,
-    () => false,
+    subscribeCoarsePointer,
+    getCoarsePointerSnapshot,
+    getServerCoarsePointerSnapshot,
   );
 
   useEffect(() => {
     onPartChange(part);
   }, [onPartChange, part]);
 
+  useEffect(() => () => {
+    for (const timer of partTransitionTimers.current) window.clearTimeout(timer);
+  }, []);
+
   const selectBlessing = (index: number) => {
     setActiveBlessing(index);
     setVisitedBlessings((current) => new Set(current).add(index));
   };
 
+  const handleBlessingKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+    let nextIndex: number | null = null;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = (index + 1) % blessing.items.length;
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = (index - 1 + blessing.items.length) % blessing.items.length;
+    else if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = blessing.items.length - 1;
+    if (nextIndex === null) return;
+    event.preventDefault();
+    selectBlessing(nextIndex);
+    blessingTabs.current[nextIndex]?.focus();
+  };
+
   const switchPart = (nextPart: 0 | 1) => {
-    if (partTransitionLock.current || partTransitioning || part === nextPart) return;
+    if (partTransitionLock.current || part === nextPart) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     partTransitionLock.current = true;
     setPartTransitioning(true);
-    window.setTimeout(() => {
+    const swapTimer = window.setTimeout(() => {
       setPart(nextPart);
       setSelected(null);
       window.scrollTo({ top: 0, behavior: "instant" });
     }, reduced ? 20 : 620);
-    window.setTimeout(() => {
+    const finishTimer = window.setTimeout(() => {
       partTransitionLock.current = false;
       setPartTransitioning(false);
+      partTransitionTimers.current = [];
     }, reduced ? 40 : 1120);
+    partTransitionTimers.current = [swapTimer, finishTimer];
   };
 
   const handleWheel = (event: ReactWheelEvent<HTMLElement>) => {
@@ -657,7 +698,13 @@ function ChoiceScene({
           <div className="reading-copy">
             <SceneHeading chapter={blessing.chapter} time={blessing.time} />
             <h2 className="chapter-title" id="blessing-title">{blessing.title}</h2>
-            <div className="blessing-copy" aria-live="polite">
+            <div
+              className="blessing-copy"
+              id="blessing-panel"
+              role="tabpanel"
+              aria-labelledby={`blessing-tab-${activeBlessing}`}
+              aria-live="polite"
+            >
               <span>{String(activeBlessing + 1).padStart(2, "0")}</span>
               <h3>{blessing.items[activeBlessing].label}</h3>
               <p>{blessing.items[activeBlessing].caption}</p>
@@ -669,8 +716,13 @@ function ChoiceScene({
                 className={activeBlessing === index ? "is-active" : ""}
                 type="button"
                 role="tab"
+                id={`blessing-tab-${index}`}
+                aria-controls="blessing-panel"
                 aria-selected={activeBlessing === index}
+                tabIndex={activeBlessing === index ? 0 : -1}
+                ref={(element) => { blessingTabs.current[index] = element; }}
                 onClick={() => selectBlessing(index)}
+                onKeyDown={(event) => handleBlessingKeyDown(event, index)}
                 key={item.label}
               >
                 <i aria-hidden="true" />
@@ -764,15 +816,45 @@ function EndingScene({ ending, onRestart, onBack }: { ending: EndingKey; onResta
 
 function PhotoModal({ photo, index, total, onClose, onStep }: { photo: PhotoMemory; index: number; total: number; onClose: () => void; onStep: (direction: number) => void }) {
   const startX = useRef(0);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-      if (event.key === "ArrowLeft") onStep(-1);
-      if (event.key === "ArrowRight") onStep(1);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        onStep(-1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        onStep(1);
+      } else if (event.key === "Tab") {
+        const buttons = Array.from(dialogRef.current?.querySelectorAll<HTMLButtonElement>("button:not([disabled])") ?? []);
+        const first = buttons[0];
+        const last = buttons.at(-1);
+        if (!first || !last) return;
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
   }, [onClose, onStep]);
 
   const onStart = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -786,8 +868,8 @@ function PhotoModal({ photo, index, total, onClose, onStep }: { photo: PhotoMemo
   };
 
   return (
-    <div className="photo-modal" role="dialog" aria-modal="true" aria-label={`照片 ${index + 1} / ${total}`} onPointerDown={onStart} onPointerUp={onEnd}>
-      <button className="modal-close" type="button" onClick={onClose} aria-label="关闭照片">×</button>
+    <div ref={dialogRef} className="photo-modal" role="dialog" aria-modal="true" aria-label={`照片 ${index + 1} / ${total}`} onPointerDown={onStart} onPointerUp={onEnd}>
+      <button ref={closeButtonRef} className="modal-close" type="button" onClick={onClose} aria-label="关闭照片">×</button>
       <button className="modal-step modal-prev" type="button" onClick={() => onStep(-1)} aria-label="上一张照片">‹</button>
       <figure>
         <div className="photo-frame">
@@ -824,16 +906,19 @@ export default function Home() {
   const [photoIndex, setPhotoIndex] = useState<number | null>(null);
   const [choicePart, setChoicePart] = useState<0 | 1>(0);
   const touchStart = useRef({ x: 0, y: 0 });
+  const transitionLock = useRef(false);
+  const transitionTimers = useRef<number[]>([]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
     const timer = window.setTimeout(() => setLoaded(true), 650);
-    const debugEnding = new URLSearchParams(window.location.search).get("ending");
-    const debugScene = new URLSearchParams(window.location.search).get("scene");
+    const searchParams = new URLSearchParams(window.location.search);
+    const debugEnding = searchParams.get("ending");
+    const debugScene = searchParams.get("scene");
     const debugTimer = window.setTimeout(() => {
-      if (debugScene === "calm") setScene("calm");
+      if (debugEnding === "a" || debugEnding === "b") setScene(`ending-${debugEnding}`);
+      else if (debugScene === "calm") setScene("calm");
       else if (debugScene === "choice") setScene("choice");
-      else if (debugEnding === "a" || debugEnding === "b") setScene(`ending-${debugEnding}`);
     }, 0);
     return () => {
       window.clearTimeout(timer);
@@ -841,37 +926,33 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    if (scene !== "apology") return;
-    for (const photo of letterContent.calm.photos) {
-      if (photo.src) {
-        const image = new Image();
-        image.src = photo.src;
-      }
-    }
-  }, [scene]);
+  useEffect(() => () => {
+    for (const timer of transitionTimers.current) window.clearTimeout(timer);
+  }, []);
 
   const go = useCallback((next: SceneKey, kind: Exclude<TransitionKey, null>) => {
-    if (transitioning) return;
+    if (transitionLock.current) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    transitionLock.current = true;
     setTransition(kind);
     setTransitioning(true);
-    window.setTimeout(() => {
+    const swapTimer = window.setTimeout(() => {
       setScene(next);
       setPhotoIndex(null);
       window.scrollTo({ top: 0, behavior: "instant" });
     }, reduced ? 20 : 640);
-    window.setTimeout(() => setTransitioning(false), reduced ? 40 : 1080);
-    window.setTimeout(() => setTransition(null), reduced ? 50 : 1600);
-  }, [transitioning]);
+    const finishTimer = window.setTimeout(() => {
+      transitionLock.current = false;
+      transitionTimers.current = [];
+      setTransitioning(false);
+      setTransition(null);
+    }, reduced ? 40 : 1080);
+    transitionTimers.current = [swapTimer, finishTimer];
+  }, []);
 
   const choose = useCallback((ending: EndingKey) => {
-    try {
-      window.localStorage.setItem("starLetterEnding", ending.toUpperCase());
-    } catch {
-      // The story remains usable if local storage is unavailable.
-    }
     const url = new URL(window.location.href);
+    url.searchParams.delete("scene");
     url.searchParams.set("ending", ending);
     window.history.replaceState({}, "", url);
     go(`ending-${ending}`, ending === "a" ? "separate" : "future");
@@ -880,6 +961,7 @@ export default function Home() {
   const restart = useCallback(() => {
     const url = new URL(window.location.href);
     url.searchParams.delete("ending");
+    url.searchParams.delete("scene");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
     go("intro", "memory");
   }, [go]);
@@ -903,6 +985,11 @@ export default function Home() {
     const deltaY = event.clientY - touchStart.current.y;
     if (deltaY < -72 && Math.abs(deltaY) > Math.abs(deltaX)) advance();
   };
+
+  const closePhoto = useCallback(() => setPhotoIndex(null), []);
+  const stepPhoto = useCallback((direction: number) => {
+    setPhotoIndex((current) => current === null ? 0 : (current + direction + letterContent.calm.photos.length) % letterContent.calm.photos.length);
+  }, []);
 
   const activeTime = scene === "intro" ? 0 : scene === "apology" ? 1 : scene === "calm" ? 2 : scene === "choice" ? 3 + choicePart : 4;
   const sceneContent = scene === "intro" ? (
@@ -946,8 +1033,8 @@ export default function Home() {
           photo={letterContent.calm.photos[photoIndex]}
           index={photoIndex}
           total={letterContent.calm.photos.length}
-          onClose={() => setPhotoIndex(null)}
-          onStep={(direction) => setPhotoIndex((current) => current === null ? 0 : (current + direction + letterContent.calm.photos.length) % letterContent.calm.photos.length)}
+          onClose={closePhoto}
+          onStep={stepPhoto}
         />
       )}
     </main>
